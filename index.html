@@ -6,12 +6,12 @@
   <title>A股短线情报 Agent</title>
   <style>
     :root {
-      --bg: #f4f6f8;
+      --bg: #f5f7fa;
       --panel: #ffffff;
       --ink: #17202a;
       --muted: #667085;
       --line: #d8dee8;
-      --line-soft: #edf0f4;
+      --soft: #edf0f4;
       --accent: #0f766e;
       --accent-ink: #075e59;
       --accent-soft: #e7f5f2;
@@ -37,20 +37,12 @@
       letter-spacing: 0;
     }
 
-    button, input, textarea, select {
-      font: inherit;
-    }
-
-    .app-shell {
-      min-height: 100vh;
-      display: grid;
-      grid-template-rows: auto auto 1fr;
-    }
+    button, input, textarea, select { font: inherit; }
 
     .topbar {
       position: sticky;
       top: 0;
-      z-index: 20;
+      z-index: 10;
       background: rgba(255, 255, 255, 0.96);
       border-bottom: 1px solid var(--line);
       backdrop-filter: blur(8px);
@@ -61,14 +53,14 @@
       max-width: 1180px;
       margin: 0 auto;
       display: flex;
+      align-items: center;
       justify-content: space-between;
       gap: 18px;
-      align-items: center;
     }
 
     .brand h1 {
       margin: 0;
-      font-size: clamp(18px, 2.4vw, 24px);
+      font-size: clamp(19px, 2.4vw, 25px);
       line-height: 1.25;
     }
 
@@ -79,29 +71,31 @@
       line-height: 1.45;
     }
 
-    .time-chip {
+    .status-chip {
       border: 1px solid var(--line);
       background: #fbfcfd;
       padding: 8px 10px;
-      min-width: 150px;
+      min-width: 160px;
       text-align: right;
       color: var(--muted);
       font-size: 12px;
       line-height: 1.45;
     }
 
-    .time-chip strong {
+    .status-chip strong {
+      display: block;
       color: var(--accent-ink);
       font-size: 15px;
+      margin-top: 2px;
     }
 
-    .nav-tabs {
+    .tabs {
       background: var(--panel);
       border-bottom: 1px solid var(--line);
       padding: 8px clamp(14px, 3vw, 30px);
     }
 
-    .nav-inner {
+    .tabs-inner {
       max-width: 1180px;
       margin: 0 auto;
       display: flex;
@@ -110,9 +104,9 @@
       scrollbar-width: none;
     }
 
-    .nav-inner::-webkit-scrollbar { display: none; }
+    .tabs-inner::-webkit-scrollbar { display: none; }
 
-    .tab-btn {
+    .tab-btn, .action-btn {
       border: 1px solid var(--line);
       background: #fff;
       color: #344054;
@@ -131,91 +125,6 @@
       font-weight: 700;
     }
 
-    main {
-      width: 100%;
-      max-width: 1180px;
-      margin: 0 auto;
-      padding: 16px clamp(14px, 3vw, 30px) 28px;
-      display: grid;
-      grid-template-columns: minmax(340px, 420px) minmax(0, 1fr);
-      gap: 16px;
-    }
-
-    .panel {
-      background: var(--panel);
-      border: 1px solid var(--line);
-      box-shadow: var(--shadow);
-      padding: 15px;
-      margin-bottom: 14px;
-    }
-
-    .panel h2 {
-      margin: 0 0 12px;
-      font-size: 15.5px;
-      line-height: 1.35;
-    }
-
-    .panel h3 {
-      margin: 12px 0 8px;
-      font-size: 13.5px;
-      line-height: 1.35;
-    }
-
-    .caption {
-      margin: -5px 0 10px;
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.5;
-    }
-
-    label {
-      display: block;
-      margin: 10px 0 6px;
-      font-size: 12.5px;
-      font-weight: 700;
-      color: #344054;
-    }
-
-    input, textarea, select {
-      width: 100%;
-      border: 1px solid var(--line);
-      background: #fff;
-      color: var(--ink);
-      padding: 10px;
-      border-radius: 6px;
-      font-size: 13px;
-    }
-
-    textarea {
-      min-height: 116px;
-      line-height: 1.55;
-      resize: vertical;
-    }
-
-    .field-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-
-    .actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      margin-top: 12px;
-    }
-
-    .action-btn {
-      border: 1px solid var(--line);
-      background: #fff;
-      color: #344054;
-      min-height: 38px;
-      padding: 8px 12px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 13px;
-    }
-
     .action-btn.primary {
       border-color: var(--accent);
       background: var(--accent);
@@ -223,7 +132,15 @@
       font-weight: 700;
     }
 
-    .action-btn:active { transform: translateY(1px); }
+    main {
+      width: 100%;
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 16px clamp(14px, 3vw, 30px) 28px;
+    }
+
+    .view { display: none; }
+    .view.active { display: block; }
 
     .summary-grid {
       display: grid;
@@ -232,10 +149,13 @@
       margin-bottom: 14px;
     }
 
-    .metric {
+    .metric, .card, .panel {
       background: var(--panel);
       border: 1px solid var(--line);
       box-shadow: var(--shadow);
+    }
+
+    .metric {
       padding: 12px;
       min-height: 74px;
     }
@@ -254,16 +174,11 @@
       line-height: 1.1;
     }
 
-    .report-stack {
-      display: grid;
-      gap: 12px;
-    }
+    .stack { display: grid; gap: 12px; }
 
-    .card {
-      background: var(--panel);
-      border: 1px solid var(--line);
-      box-shadow: var(--shadow);
+    .card, .panel {
       padding: 14px;
+      margin-bottom: 14px;
     }
 
     .card-title {
@@ -274,8 +189,54 @@
       margin-bottom: 10px;
     }
 
-    .card-title h2, .card-title h3 {
-      margin: 0;
+    h2, h3 { margin: 0; line-height: 1.35; }
+    h2 { font-size: 15.5px; }
+    h3 { font-size: 13.5px; }
+
+    .caption, .meta {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .caption { margin: 4px 0 12px; }
+
+    label {
+      display: block;
+      margin: 10px 0 6px;
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #344054;
+    }
+
+    textarea, input, select {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+
+    textarea {
+      min-height: 138px;
+      line-height: 1.55;
+      resize: vertical;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+      gap: 14px;
+      align-items: start;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
     }
 
     .tag-row {
@@ -304,7 +265,7 @@
     .tag.blue { background: var(--blue-soft); border-color: #c7d7fe; color: var(--blue); }
 
     .list-item {
-      border-top: 1px solid var(--line-soft);
+      border-top: 1px solid var(--soft);
       padding-top: 11px;
       margin-top: 11px;
     }
@@ -327,19 +288,12 @@
       line-height: 1.35;
     }
 
-    .meta {
-      color: var(--muted);
-      font-size: 12px;
-      line-height: 1.55;
-      margin-top: 5px;
-    }
-
     .score {
       display: inline-flex;
       align-items: center;
       justify-content: center;
       flex: 0 0 auto;
-      min-width: 36px;
+      min-width: 38px;
       height: 26px;
       background: var(--accent);
       color: #fff;
@@ -355,7 +309,7 @@
 
     table {
       width: 100%;
-      min-width: 680px;
+      min-width: 720px;
       border-collapse: collapse;
       table-layout: fixed;
       font-size: 12.5px;
@@ -381,206 +335,145 @@
       font-weight: 700;
     }
 
-    .empty {
+    .empty, .risk-note {
       border: 1px dashed var(--line);
       background: #fbfcfd;
       color: var(--muted);
-      padding: 20px;
+      padding: 18px;
       text-align: center;
       font-size: 13px;
       line-height: 1.55;
     }
 
     .risk-note {
+      border-style: solid;
       background: var(--warn-soft);
-      border: 1px solid #f7d795;
+      border-color: #f7d795;
       color: #7a4300;
-      padding: 10px;
-      font-size: 12.5px;
-      line-height: 1.55;
+      text-align: left;
       margin-top: 10px;
     }
 
-    .mobile-only { display: none; }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
 
     @media (max-width: 920px) {
-      .topbar-inner {
-        align-items: flex-start;
-      }
-
-      .time-chip {
-        min-width: 118px;
-      }
-
-      main {
-        grid-template-columns: 1fr;
-      }
-
-      .input-column.hidden-mobile,
-      .report-column.hidden-mobile {
-        display: none;
-      }
-
-      .mobile-only {
-        display: inline-flex;
-      }
-
-      .summary-grid {
-        grid-template-columns: repeat(2, 1fr);
-      }
+      .grid-2 { grid-template-columns: 1fr; }
+      .summary-grid { grid-template-columns: repeat(2, 1fr); }
     }
 
     @media (max-width: 560px) {
-      .topbar {
-        padding: 12px 12px 10px;
-      }
-
-      .topbar-inner {
-        display: block;
-      }
-
-      .time-chip {
-        margin-top: 10px;
-        width: 100%;
-        text-align: left;
-      }
-
-      .nav-tabs {
-        padding: 8px 12px;
-      }
-
-      main {
-        padding: 12px 12px 22px;
-      }
-
-      .field-grid,
-      .summary-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .panel,
-      .card,
-      .metric {
-        padding: 12px;
-      }
-
-      textarea {
-        min-height: 138px;
-      }
-
-      .action-btn {
-        flex: 1 1 120px;
-      }
+      .topbar { padding: 12px; }
+      .topbar-inner { display: block; }
+      .status-chip { margin-top: 10px; width: 100%; text-align: left; }
+      .tabs { padding: 8px 12px; }
+      main { padding: 12px 12px 22px; }
+      .summary-grid { grid-template-columns: 1fr; }
+      .card, .panel, .metric { padding: 12px; }
+      .action-btn { flex: 1 1 120px; }
     }
   </style>
 </head>
 <body>
-  <div class="app-shell">
-    <header class="topbar">
-      <div class="topbar-inner">
-        <div class="brand">
-          <h1>A股短线情报 Agent</h1>
-          <p>每天 10:00 生成新闻驱动日报：板块影响、候选观察、持仓变化和风险提示。</p>
-        </div>
-        <div class="time-chip">
-          <span>下一次日报</span>
-          <strong id="nextRun">10:00</strong>
-        </div>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <h1>A股短线情报 Agent</h1>
+        <p>每天 10:00 自动整理公开财经新闻，输出板块影响、候选观察池和风险提示，只在网页展示。</p>
       </div>
-    </header>
-
-    <nav class="nav-tabs">
-      <div class="nav-inner">
-        <button class="tab-btn active" data-tab="report">今日日报</button>
-        <button class="tab-btn" data-tab="input">输入配置</button>
-        <button class="tab-btn" data-tab="source">数据规划</button>
+      <div class="status-chip">
+        <span id="statusText">正在读取自动日报</span>
+        <strong id="reportTime">10:00</strong>
       </div>
-    </nav>
+    </div>
+  </header>
 
-    <main>
-      <aside class="input-column" id="inputPanel">
-        <section class="panel">
-          <h2>输入配置</h2>
-          <p class="caption">V1 先跑通分析流程；V2 再接入新闻源、定时任务和大模型。</p>
-          <div class="field-grid">
-            <div>
-              <label for="reportTime">日报时间</label>
-              <input id="reportTime" value="10:00">
-            </div>
-            <div>
-              <label for="style">短线风格</label>
-              <select id="style">
-                <option>稳健观察</option>
-                <option selected>中等积极</option>
-                <option>高波动热点</option>
-              </select>
-            </div>
-          </div>
-          <label for="holdings">我的持仓</label>
-          <textarea id="holdings">宁德时代 300750
+  <nav class="tabs">
+    <div class="tabs-inner">
+      <button class="tab-btn active" data-view="auto">自动日报</button>
+      <button class="tab-btn" data-view="manual">手动分析</button>
+      <button class="tab-btn" data-view="plan">数据规划</button>
+    </div>
+  </nav>
+
+  <main>
+    <section class="view active" id="autoView">
+      <div class="summary-grid" id="autoSummary"></div>
+      <div class="stack" id="autoReport">
+        <div class="empty">正在读取 daily-report.json...</div>
+      </div>
+    </section>
+
+    <section class="view" id="manualView">
+      <div class="grid-2">
+        <aside>
+          <section class="panel">
+            <h2>输入配置</h2>
+            <p class="caption">这是备用测试模式，用来验证板块映射逻辑。真正的 V2 日报来自自动生成的 JSON 文件。</p>
+            <label for="holdings">我的持仓观察</label>
+            <textarea id="holdings">宁德时代 300750
 中际旭创 300308
 贵州茅台 600519</textarea>
-          <div class="actions">
-            <button class="action-btn" id="saveBtn">保存配置</button>
-            <button class="action-btn" id="loadBtn">读取配置</button>
-          </div>
-        </section>
+            <div class="actions">
+              <button class="action-btn" id="saveBtn">保存配置</button>
+              <button class="action-btn" id="loadBtn">读取配置</button>
+            </div>
+          </section>
 
-        <section class="panel">
-          <h2>今日新闻</h2>
-          <label for="newsInput">财经新闻 / 公告 / 政策摘要</label>
-          <textarea id="newsInput">国家发改委表示将继续支持人工智能算力基础设施建设，推动数据中心绿色化改造。
-多家光模块公司披露订单需求旺盛，海外 AI 资本开支仍保持高位。
-新能源汽车产业链传出价格竞争加剧，部分电池材料报价继续承压。
-白酒板块近期渠道反馈偏弱，市场关注中秋备货节奏。</textarea>
-          <div class="actions">
-            <button class="action-btn primary" id="analyzeBtn">生成日报</button>
-            <button class="action-btn" id="sampleBtn">示例新闻</button>
-            <button class="action-btn" id="clearBtn">清空</button>
-          </div>
+          <section class="panel">
+            <h2>手动新闻</h2>
+            <label for="newsInput">财经新闻 / 政策摘要</label>
+            <textarea id="newsInput">工信部提出加快人工智能基础设施建设，推进算力网络和数据中心协同发展。海外 AI 服务器订单维持高景气，光模块需求预期继续上修。新能源车产业链传出价格竞争加剧，部分电池材料报价继续承压。</textarea>
+            <div class="actions">
+              <button class="action-btn primary" id="analyzeBtn">生成分析</button>
+              <button class="action-btn" id="sampleBtn">示例新闻</button>
+              <button class="action-btn" id="clearBtn">清空</button>
+            </div>
+          </section>
+        </aside>
+        <section>
+          <div class="summary-grid" id="manualSummary"></div>
+          <div class="stack" id="manualReport"></div>
         </section>
+      </div>
+    </section>
 
-        <section class="panel" id="sourcePanel">
-          <h2>数据规划</h2>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr><th>模块</th><th>V1</th><th>V2</th></tr>
-              </thead>
-              <tbody>
-                <tr><td>新闻</td><td>手动输入</td><td>财经新闻源 / 公告源</td></tr>
-                <tr><td>板块</td><td>关键词映射</td><td>行业库 + 概念库</td></tr>
-                <tr><td>分析</td><td>规则模拟</td><td>大模型判断影响方向</td></tr>
-                <tr><td>推送</td><td>网页查看</td><td>每日 10:00 自动更新</td></tr>
-              </tbody>
-            </table>
-          </div>
-          <div class="risk-note">产品边界：本工具输出观察和风险提示，不输出买入、卖出、必涨等交易指令。</div>
-        </section>
-      </aside>
-
-      <section class="report-column" id="reportPanel">
-        <div class="summary-grid" id="summaryGrid">
-          <div class="metric"><span>命中板块</span><strong>0</strong></div>
-          <div class="metric"><span>候选观察</span><strong>0</strong></div>
-          <div class="metric"><span>持仓影响</span><strong>0</strong></div>
-          <div class="metric"><span>风险等级</span><strong>待分析</strong></div>
+    <section class="view" id="planView">
+      <div class="card">
+        <div class="card-title">
+          <h2>产品边界</h2>
+          <span class="tag risk">非投资建议</span>
         </div>
-        <div class="report-stack" id="report">
-          <div class="empty">点击“生成日报”后，这里会输出今日 A 股短线情报。</div>
+        <div class="risk-note">这个工具定位是“新闻驱动的短线信息整理 Agent”，不是自动荐股工具。它可以帮你把新闻、板块、候选观察池和风险点整理出来，但不能输出买入、卖出、必涨、收益承诺。</div>
+      </div>
+      <div class="card">
+        <div class="card-title">
+          <h2>V2 工作流</h2>
+          <span class="tag blue">只展示在网页</span>
         </div>
-      </section>
-    </main>
-  </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>环节</th><th>当前做法</th><th>下一步可升级</th></tr></thead>
+            <tbody>
+              <tr><td>新闻收集</td><td>GitHub Actions 每天 10:00 运行 Python，抓取公开 RSS 新闻。</td><td>接入更稳定的数据源和公告源。</td></tr>
+              <tr><td>板块判断</td><td>关键词规则映射行业方向。</td><td>加入大模型判断新闻影响链条。</td></tr>
+              <tr><td>候选观察池</td><td>按内置行业代表股生成观察列表。</td><td>接入股票池、财务指标、成交量和涨跌幅。</td></tr>
+              <tr><td>网页展示</td><td>前端读取 daily-report.json，手机和电脑都能打开。</td><td>加入历史日报、持仓自定义和 AI 总结。</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
 
   <script>
     const sectorMap = [
       {
-        name: "AI 算力 / 光模块",
-        keywords: ["人工智能", "算力", "数据中心", "光模块", "AI 资本开支", "服务器", "英伟达"],
+        name: "AI算力 / 光模块",
+        keywords: ["人工智能", "AI", "算力", "数据中心", "光模块", "服务器", "英伟达", "大模型"],
         trend: "偏利好",
         stocks: [
-          { name: "中际旭创", code: "300308", quality: "行业地位强", reason: "高速光模块代表公司，和海外 AI 资本开支相关度高。", risk: "短线涨幅大时容易受情绪波动影响。" },
+          { name: "中际旭创", code: "300308", quality: "行业地位强", reason: "高速光模块代表公司，和海外 AI 资本开支相关度较高。", risk: "短线涨幅大时容易受情绪波动影响。" },
           { name: "新易盛", code: "300502", quality: "弹性较强", reason: "光模块弹性标的，受 AI 网络建设预期影响明显。", risk: "估值和订单兑现节奏需要跟踪。" },
           { name: "工业富联", code: "601138", quality: "产业链核心", reason: "AI 服务器产业链代表公司，和算力基础设施相关。", risk: "体量较大，短线弹性通常弱于高弹性标的。" }
         ]
@@ -591,7 +484,7 @@
         trend: "事件驱动",
         stocks: [
           { name: "北方华创", code: "002371", quality: "设备龙头", reason: "半导体设备龙头，国产替代主线相关度高。", risk: "估值较高，短线受政策和订单预期影响大。" },
-          { name: "中微公司", code: "688012", quality: "设备代表", reason: "半导体设备代表公司，受晶圆厂资本开支影响。", risk: "科创板波动较大，需关注成交量。" },
+          { name: "中微公司", code: "688012", quality: "设备代表", reason: "半导体设备代表公司，受晶圆厂资本开支影响。", risk: "科创板波动较大，需要关注成交量。" },
           { name: "长电科技", code: "600584", quality: "封装代表", reason: "先进封装相关标的，受 AI 芯片封装需求影响。", risk: "行业周期和利润弹性需要验证。" }
         ]
       },
@@ -607,7 +500,7 @@
       },
       {
         name: "白酒 / 消费",
-        keywords: ["白酒", "消费", "渠道", "中秋", "备货", "高端酒"],
+        keywords: ["白酒", "消费", "渠道", "中秋", "备货", "高端酒", "茅台"],
         trend: "偏谨慎",
         stocks: [
           { name: "贵州茅台", code: "600519", quality: "高端核心", reason: "高端白酒核心标的，渠道反馈会影响消费板块预期。", risk: "短线弹性较弱，更适合观察消费情绪变化。" },
@@ -617,140 +510,124 @@
       }
     ];
 
+    const autoSummary = document.getElementById("autoSummary");
+    const autoReport = document.getElementById("autoReport");
+    const manualSummary = document.getElementById("manualSummary");
+    const manualReport = document.getElementById("manualReport");
     const holdingsEl = document.getElementById("holdings");
     const newsEl = document.getElementById("newsInput");
-    const reportEl = document.getElementById("report");
-    const summaryEl = document.getElementById("summaryGrid");
 
-    function parseHoldings() {
-      return holdingsEl.value.split(/\n+/).map(item => item.trim()).filter(Boolean);
+    function escapeHtml(value) {
+      return String(value ?? "").replace(/[&<>"']/g, char => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+      }[char]));
     }
 
-    function getMatchedSectors(news) {
-      return sectorMap
-        .map(sector => ({ ...sector, hits: sector.keywords.filter(keyword => news.includes(keyword)) }))
-        .filter(sector => sector.hits.length);
-    }
-
-    function sectorHeat(sector) {
-      if (sector.hits.length >= 3) return { text: "高", cls: "good" };
-      if (sector.hits.length === 2) return { text: "中", cls: "warn" };
-      return { text: "低", cls: "blue" };
-    }
-
-    function candidateScore(sector, index) {
-      const style = document.getElementById("style").value;
-      const base = style === "高波动热点" ? 86 : style === "稳健观察" ? 78 : 82;
-      return Math.max(68, base + sector.hits.length * 3 - index * 5);
-    }
-
-    function updateSummary(sectors, candidates, impacts) {
-      const risk = sectors.some(s => s.trend.includes("谨慎") || s.trend.includes("分歧")) ? "中高" : sectors.length ? "中等" : "待分析";
-      summaryEl.innerHTML = `
+    function renderSummary(target, sectors, candidates, impacts, risk) {
+      target.innerHTML = `
         <div class="metric"><span>命中板块</span><strong>${sectors.length}</strong></div>
         <div class="metric"><span>候选观察</span><strong>${candidates.length}</strong></div>
-        <div class="metric"><span>持仓影响</span><strong>${impacts.length}</strong></div>
-        <div class="metric"><span>风险等级</span><strong>${risk}</strong></div>
+        <div class="metric"><span>持仓命中</span><strong>${impacts.length}</strong></div>
+        <div class="metric"><span>风险等级</span><strong>${escapeHtml(risk || "待观察")}</strong></div>
       `;
     }
 
-    function renderReport() {
-      const news = newsEl.value.trim();
-      const holdings = parseHoldings();
+    function renderReport(target, payload, impacts = []) {
+      const sectors = payload.sectors || [];
+      const candidates = payload.candidates || [];
+      const news = payload.news || [];
+      const newsAnalysis = payload.news_analysis || [];
 
-      if (!news) {
-        reportEl.innerHTML = '<div class="empty">请先输入今日财经新闻。</div>';
-        updateSummary([], [], []);
-        return;
-      }
-
-      const sectors = getMatchedSectors(news);
-      const candidates = sectors.flatMap(sector => sector.stocks.map((stock, index) => ({
-        ...stock,
-        sector: sector.name,
-        trend: sector.trend,
-        score: candidateScore(sector, index)
-      }))).sort((a, b) => b.score - a.score);
-
-      const impacts = [];
-      holdings.forEach(holding => {
-        sectors.forEach(sector => {
-          sector.stocks.forEach(stock => {
-            if (holding.includes(stock.name) || holding.includes(stock.code)) {
-              impacts.push({ holding, sector: sector.name, trend: sector.trend, stock });
-            }
-          });
-        });
-      });
-
-      updateSummary(sectors, candidates, impacts);
-
-      const sectorHtml = sectors.length ? sectors.map(sector => {
-        const heat = sectorHeat(sector);
-        return `
-          <div class="list-item">
-            <div class="item-head">
-              <strong>${sector.name}</strong>
-              <span class="tag ${heat.cls}">热度 ${heat.text}</span>
-            </div>
-            <div class="tag-row">
-              <span class="tag">${sector.trend}</span>
-              ${sector.hits.map(hit => `<span class="tag good">${hit}</span>`).join("")}
-            </div>
-            <div class="meta">短线观察：10:00 后重点看板块涨幅持续性、成交量放大情况、龙头是否高开低走。</div>
+      const sectorHtml = sectors.length ? sectors.map(sector => `
+        <div class="list-item">
+          <div class="item-head">
+            <strong>${escapeHtml(sector.name)}</strong>
+            <span class="score">${escapeHtml(sector.heat || "-")}</span>
           </div>
-        `;
-      }).join("") : '<div class="empty">当前新闻没有命中内置板块，请补充关键词或扩展股票池。</div>';
+          <div class="tag-row">
+            <span class="tag ${sector.trend === "偏谨慎" || sector.trend === "分歧加大" ? "warn" : "good"}">${escapeHtml(sector.trend)}</span>
+            ${(sector.hits || []).map(hit => `<span class="tag blue">${escapeHtml(hit)}</span>`).join("")}
+          </div>
+          <div class="meta">${escapeHtml(sector.short_view || "观察板块强度、成交量和龙头走势。")}</div>
+          ${(sector.related_news || []).length ? `<div class="tag-row">${sector.related_news.map(item => `<a class="tag" href="${escapeHtml(item.url)}" target="_blank" rel="noopener">${escapeHtml(item.title).slice(0, 36)}</a>`).join("")}</div>` : ""}
+        </div>
+      `).join("") : `<div class="empty">自动新闻暂时没有命中内置板块。后续可以扩展更多行业词库和股票池。</div>`;
 
       const candidateRows = candidates.length ? candidates.map(item => `
         <tr>
-          <td><strong>${item.name}</strong><br><span class="meta">${item.code}</span></td>
-          <td>${item.sector}<br><span class="tag blue">${item.quality}</span></td>
-          <td>${item.reason}</td>
-          <td>${item.risk}</td>
-          <td><span class="score">${item.score}</span></td>
+          <td><strong>${escapeHtml(item.name)}</strong><br><span class="meta">${escapeHtml(item.code)}</span></td>
+          <td>${escapeHtml(item.sector)}<br><span class="tag blue">${escapeHtml(item.quality)}</span></td>
+          <td>${escapeHtml(item.reason)}</td>
+          <td>${escapeHtml(item.risk)}</td>
+          <td><span class="score">${escapeHtml(item.score)}</span></td>
         </tr>
-      `).join("") : '<tr><td colspan="5">暂无候选观察股。</td></tr>';
+      `).join("") : `<tr><td colspan="5">暂无候选观察股。</td></tr>`;
+
+      const newsHtml = news.length ? news.slice(0, 10).map(item => `
+        <div class="list-item">
+          <div class="item-head">
+            <strong><a href="${escapeHtml(item.url)}" target="_blank" rel="noopener">${escapeHtml(item.title)}</a></strong>
+            <span class="tag">${escapeHtml(item.source)}</span>
+          </div>
+          <div class="meta">${escapeHtml(item.published || item.summary || "公开新闻源")}</div>
+        </div>
+      `).join("") : `<div class="empty">暂无新闻数据。</div>`;
+
+      const newsAnalysisHtml = newsAnalysis.length ? newsAnalysis.slice(0, 10).map((item, index) => `
+        <div class="list-item">
+          <div class="item-head">
+            <strong>${index + 1}. <a href="${escapeHtml(item.url)}" target="_blank" rel="noopener">${escapeHtml(item.title)}</a></strong>
+            <span class="tag">${escapeHtml(item.source)}</span>
+          </div>
+          <div class="meta">${escapeHtml(item.published || "公开新闻源")}</div>
+          ${item.summary ? `<div class="meta">${escapeHtml(item.summary)}</div>` : ""}
+          ${(item.impacts || []).map(impact => `
+            <div class="risk-note">
+              <div class="tag-row">
+                <span class="tag blue">${escapeHtml(impact.sector)}</span>
+                <span class="tag ${impact.direction && impact.direction.includes("负") ? "warn" : "good"}">${escapeHtml(impact.direction)}</span>
+                ${(impact.hits || []).map(hit => `<span class="tag">${escapeHtml(hit)}</span>`).join("")}
+              </div>
+              <div class="meta"><strong>影响逻辑：</strong>${escapeHtml(impact.logic)}</div>
+              ${(impact.watch_stocks || []).length ? `<div class="meta"><strong>观察股：</strong>${impact.watch_stocks.map(stock => `${escapeHtml(stock.name)} ${escapeHtml(stock.code)}`).join("、")}</div>` : ""}
+              <div class="meta"><strong>风险提醒：</strong>${escapeHtml(impact.risk)}</div>
+            </div>
+          `).join("")}
+        </div>
+      `).join("") : `<div class="empty">暂无逐条新闻分析。运行新版 news_agent.py 后会自动生成。</div>`;
 
       const impactHtml = impacts.length ? impacts.map(item => `
         <div class="list-item">
           <div class="item-head">
-            <strong>${item.holding}</strong>
-            <span class="tag warn">${item.trend}</span>
+            <strong>${escapeHtml(item.holding)}</strong>
+            <span class="tag warn">${escapeHtml(item.trend)}</span>
           </div>
-          <div class="meta">${item.stock.reason}</div>
-          <div class="tag-row">
-            <span class="tag">${item.sector}</span>
-            <span class="tag risk">${item.stock.risk}</span>
-          </div>
+          <div class="meta">${escapeHtml(item.reason)}</div>
+          <div class="tag-row"><span class="tag">${escapeHtml(item.sector)}</span><span class="tag risk">${escapeHtml(item.risk)}</span></div>
         </div>
-      `).join("") : '<div class="empty">今日新闻没有直接命中你的持仓，但仍需观察大盘情绪和相关板块扩散。</div>';
+      `).join("") : `<div class="empty">当前未配置持仓命中。为保护隐私，真实持仓不要放到公开 GitHub 仓库里。</div>`;
 
-      reportEl.innerHTML = `
+      target.innerHTML = `
         <div class="card">
           <div class="card-title">
             <h2>1. 新闻影响板块</h2>
-            <span class="tag">A股短线</span>
+            <span class="tag">${escapeHtml(payload.market || "A股")} · ${escapeHtml(payload.style || "短线")}</span>
           </div>
           ${sectorHtml}
         </div>
-
         <div class="card">
           <div class="card-title">
             <h2>2. 候选观察池</h2>
-            <span class="tag">非买卖建议</span>
+            <span class="tag risk">非买卖建议</span>
           </div>
           <div class="table-wrap">
             <table>
-              <thead>
-                <tr><th>股票</th><th>板块</th><th>入池逻辑</th><th>短线风险</th><th>分数</th></tr>
-              </thead>
+              <thead><tr><th>股票</th><th>板块</th><th>入池逻辑</th><th>短线风险</th><th>分数</th></tr></thead>
               <tbody>${candidateRows}</tbody>
             </table>
           </div>
-          <div class="risk-note">观察分只用于排序，不代表买入建议。短线需要结合盘口、成交量、位置、情绪周期和个人风险承受能力。</div>
+          <div class="risk-note">分数只用于观察排序，不代表买入建议。短线还需要结合盘口、成交量、位置、情绪周期和个人风险承受能力。</div>
         </div>
-
         <div class="card">
           <div class="card-title">
             <h2>3. 持仓影响</h2>
@@ -758,89 +635,148 @@
           </div>
           ${impactHtml}
         </div>
-
         <div class="card">
           <div class="card-title">
-            <h2>4. 今日风险提示</h2>
-            <span class="tag risk">人工确认</span>
+            <h2>4. 逐条新闻分析</h2>
+            <span class="tag blue">${newsAnalysis.length} 条</span>
           </div>
-          <div class="tag-row">
-            <span class="tag risk">不输出买卖指令</span>
-            <span class="tag warn">防高开低走</span>
-            <span class="tag warn">看板块持续性</span>
-            <span class="tag blue">10:00 后二次确认量能</span>
+          ${newsAnalysisHtml}
+        </div>
+        <div class="card">
+          <div class="card-title">
+            <h2>5. 原始新闻</h2>
+            <span class="tag blue">${news.length} 条</span>
           </div>
-          <div class="meta">新闻正确不等于股价会立刻上涨。V1 只做信息整理、板块映射和风险提醒，最终决策必须人工判断。</div>
+          ${newsHtml}
         </div>
       `;
     }
 
+    function parseHoldings() {
+      return holdingsEl.value.split(/\n+/).map(item => item.trim()).filter(Boolean);
+    }
+
+    function buildManualPayload() {
+      const text = newsEl.value.trim();
+      const sectors = sectorMap.map(sector => {
+        const hits = sector.keywords.filter(keyword => text.includes(keyword));
+        if (!hits.length) return null;
+        const heat = Math.min(100, 65 + hits.length * 8);
+        return {
+          name: sector.name,
+          trend: sector.trend,
+          hits,
+          heat,
+          short_view: "手动模式仅验证规则链路，真实日报以自动新闻源为准。",
+          related_news: []
+        };
+      }).filter(Boolean);
+      const candidates = sectors.flatMap(sector => {
+        const original = sectorMap.find(item => item.name === sector.name);
+        return original.stocks.map((stock, index) => ({ ...stock, sector: sector.name, trend: sector.trend, score: Math.max(68, sector.heat - index * 5) }));
+      }).sort((a, b) => b.score - a.score);
+      const risk = sectors.some(s => s.trend === "偏谨慎" || s.trend === "分歧加大") ? "中高" : (sectors.length ? "中等" : "待观察");
+      const manualNews = text ? [{ title: text.slice(0, 80), source: "手动输入", summary: text, url: "#" }] : [];
+      const manualAnalysis = text ? [{
+        title: text.slice(0, 80),
+        source: "手动输入",
+        summary: text.slice(0, 220),
+        url: "#",
+        impacts: sectors.length ? sectors.map(sector => {
+          const original = sectorMap.find(item => item.name === sector.name);
+          return {
+            sector: sector.name,
+            direction: sector.trend === "偏谨慎" ? "偏负向 / 需观察" : (sector.trend === "分歧加大" ? "多空分歧" : "偏正向"),
+            hits: sector.hits,
+            logic: "手动新闻命中该板块关键词，可作为短线观察线索，仍需结合板块强度和龙头走势确认。",
+            watch_stocks: original ? original.stocks.slice(0, 3) : [],
+            risk: "手动模式仅验证分析链路，不代表真实市场结论。"
+          };
+        }) : [{
+          sector: "未命中内置板块",
+          direction: "暂不判断",
+          hits: [],
+          logic: "当前文本没有命中内置行业词库，可以补充行业关键词或扩展股票池。",
+          watch_stocks: [],
+          risk: "不要为了每条新闻强行关联股票。"
+        }]
+      }] : [];
+      return { market: "A股", style: "手动测试", sectors, candidates, news: manualNews, news_analysis: manualAnalysis, risk_level: risk };
+    }
+
+    function getImpacts(candidates) {
+      const holdings = parseHoldings();
+      const impacts = [];
+      holdings.forEach(holding => {
+        candidates.forEach(stock => {
+          if (holding.includes(stock.name) || holding.includes(stock.code)) {
+            impacts.push({ holding, sector: stock.sector, trend: stock.trend, reason: stock.reason, risk: stock.risk });
+          }
+        });
+      });
+      return impacts;
+    }
+
+    async function loadAutoReport() {
+      try {
+        const response = await fetch(`daily-report.json?t=${Date.now()}`, { cache: "no-store" });
+        if (!response.ok) throw new Error("daily-report.json not found");
+        const payload = await response.json();
+        const impacts = getImpacts(payload.candidates || []);
+        renderSummary(autoSummary, payload.sectors || [], payload.candidates || [], impacts, payload.risk_level);
+        renderReport(autoReport, payload, impacts);
+        document.getElementById("statusText").textContent = "自动日报已更新";
+        document.getElementById("reportTime").textContent = payload.generated_label || "10:00";
+      } catch (error) {
+        renderSummary(autoSummary, [], [], [], "待生成");
+        autoReport.innerHTML = `
+          <div class="empty">还没有读取到自动日报。上传 V2 文件并运行 GitHub Actions 后，这里会自动展示 daily-report.json。</div>
+        `;
+        document.getElementById("statusText").textContent = "等待自动日报";
+        document.getElementById("reportTime").textContent = "10:00";
+      }
+    }
+
+    function runManual() {
+      const payload = buildManualPayload();
+      const impacts = getImpacts(payload.candidates);
+      renderSummary(manualSummary, payload.sectors, payload.candidates, impacts, payload.risk_level);
+      renderReport(manualReport, payload, impacts);
+    }
+
     function saveConfig() {
       localStorage.setItem("ashare_agent_holdings", holdingsEl.value);
-      localStorage.setItem("ashare_agent_time", document.getElementById("reportTime").value);
-      localStorage.setItem("ashare_agent_style", document.getElementById("style").value);
-      document.getElementById("nextRun").textContent = document.getElementById("reportTime").value || "10:00";
     }
 
     function loadConfig() {
       const holdings = localStorage.getItem("ashare_agent_holdings");
-      const time = localStorage.getItem("ashare_agent_time");
-      const style = localStorage.getItem("ashare_agent_style");
       if (holdings) holdingsEl.value = holdings;
-      if (time) {
-        document.getElementById("reportTime").value = time;
-        document.getElementById("nextRun").textContent = time;
-      }
-      if (style) document.getElementById("style").value = style;
     }
-
-    document.getElementById("analyzeBtn").addEventListener("click", renderReport);
-    document.getElementById("saveBtn").addEventListener("click", saveConfig);
-    document.getElementById("loadBtn").addEventListener("click", () => { loadConfig(); renderReport(); });
-    document.getElementById("sampleBtn").addEventListener("click", () => {
-      newsEl.value = `工信部提出加快人工智能基础设施建设，推进算力网络和数据中心协同发展。
-海外 AI 服务器订单维持高景气，光模块需求预期继续上修。
-半导体设备国产替代政策预期升温，先进封装方向受到机构关注。
-消费板块分化，白酒渠道反馈仍偏谨慎。`;
-      renderReport();
-    });
-    document.getElementById("clearBtn").addEventListener("click", () => {
-      newsEl.value = "";
-      renderReport();
-    });
-    document.getElementById("reportTime").addEventListener("input", event => {
-      document.getElementById("nextRun").textContent = event.target.value || "10:00";
-    });
 
     document.querySelectorAll(".tab-btn").forEach(button => {
       button.addEventListener("click", () => {
         document.querySelectorAll(".tab-btn").forEach(item => item.classList.remove("active"));
+        document.querySelectorAll(".view").forEach(item => item.classList.remove("active"));
         button.classList.add("active");
-        const tab = button.dataset.tab;
-        const inputColumn = document.getElementById("inputPanel");
-        const reportColumn = document.getElementById("reportPanel");
-        if (window.matchMedia("(max-width: 920px)").matches) {
-          inputColumn.classList.toggle("hidden-mobile", tab === "report");
-          reportColumn.classList.toggle("hidden-mobile", tab !== "report");
-          document.getElementById("sourcePanel").style.display = tab === "source" ? "block" : "";
-          if (tab === "source") {
-            inputColumn.classList.remove("hidden-mobile");
-            reportColumn.classList.add("hidden-mobile");
-          }
-        }
+        document.getElementById(`${button.dataset.view}View`).classList.add("active");
       });
     });
 
-    window.addEventListener("resize", () => {
-      if (!window.matchMedia("(max-width: 920px)").matches) {
-        document.getElementById("inputPanel").classList.remove("hidden-mobile");
-        document.getElementById("reportPanel").classList.remove("hidden-mobile");
-        document.getElementById("sourcePanel").style.display = "";
-      }
+    document.getElementById("analyzeBtn").addEventListener("click", runManual);
+    document.getElementById("saveBtn").addEventListener("click", saveConfig);
+    document.getElementById("loadBtn").addEventListener("click", () => { loadConfig(); runManual(); });
+    document.getElementById("sampleBtn").addEventListener("click", () => {
+      newsEl.value = "工信部提出加快人工智能基础设施建设，推进算力网络和数据中心协同发展。海外 AI 服务器订单维持高景气，光模块需求预期继续上修。半导体设备国产替代政策预期升温，先进封装方向受到机构关注。消费板块分化，白酒渠道反馈仍偏谨慎。";
+      runManual();
+    });
+    document.getElementById("clearBtn").addEventListener("click", () => {
+      newsEl.value = "";
+      runManual();
     });
 
     loadConfig();
-    renderReport();
+    runManual();
+    loadAutoReport();
   </script>
 </body>
 </html>
