@@ -1,0 +1,846 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>A股短线情报 Agent</title>
+  <style>
+    :root {
+      --bg: #f4f6f8;
+      --panel: #ffffff;
+      --ink: #17202a;
+      --muted: #667085;
+      --line: #d8dee8;
+      --line-soft: #edf0f4;
+      --accent: #0f766e;
+      --accent-ink: #075e59;
+      --accent-soft: #e7f5f2;
+      --blue: #1d4ed8;
+      --blue-soft: #eef4ff;
+      --warn: #a15c07;
+      --warn-soft: #fff7e6;
+      --risk: #b42318;
+      --risk-soft: #fff1f2;
+      --good: #166534;
+      --good-soft: #eefbf2;
+      --shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", Arial, sans-serif;
+      letter-spacing: 0;
+    }
+
+    button, input, textarea, select {
+      font: inherit;
+    }
+
+    .app-shell {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255, 255, 255, 0.96);
+      border-bottom: 1px solid var(--line);
+      backdrop-filter: blur(8px);
+      padding: 14px clamp(14px, 3vw, 30px);
+    }
+
+    .topbar-inner {
+      max-width: 1180px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: center;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: clamp(18px, 2.4vw, 24px);
+      line-height: 1.25;
+    }
+
+    .brand p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 12.5px;
+      line-height: 1.45;
+    }
+
+    .time-chip {
+      border: 1px solid var(--line);
+      background: #fbfcfd;
+      padding: 8px 10px;
+      min-width: 150px;
+      text-align: right;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .time-chip strong {
+      color: var(--accent-ink);
+      font-size: 15px;
+    }
+
+    .nav-tabs {
+      background: var(--panel);
+      border-bottom: 1px solid var(--line);
+      padding: 8px clamp(14px, 3vw, 30px);
+    }
+
+    .nav-inner {
+      max-width: 1180px;
+      margin: 0 auto;
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .nav-inner::-webkit-scrollbar { display: none; }
+
+    .tab-btn {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: #344054;
+      min-height: 36px;
+      padding: 7px 12px;
+      border-radius: 6px;
+      white-space: nowrap;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .tab-btn.active {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      color: var(--accent-ink);
+      font-weight: 700;
+    }
+
+    main {
+      width: 100%;
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 16px clamp(14px, 3vw, 30px) 28px;
+      display: grid;
+      grid-template-columns: minmax(340px, 420px) minmax(0, 1fr);
+      gap: 16px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      padding: 15px;
+      margin-bottom: 14px;
+    }
+
+    .panel h2 {
+      margin: 0 0 12px;
+      font-size: 15.5px;
+      line-height: 1.35;
+    }
+
+    .panel h3 {
+      margin: 12px 0 8px;
+      font-size: 13.5px;
+      line-height: 1.35;
+    }
+
+    .caption {
+      margin: -5px 0 10px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    label {
+      display: block;
+      margin: 10px 0 6px;
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #344054;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+
+    textarea {
+      min-height: 116px;
+      line-height: 1.55;
+      resize: vertical;
+    }
+
+    .field-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+
+    .action-btn {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: #344054;
+      min-height: 38px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .action-btn.primary {
+      border-color: var(--accent);
+      background: var(--accent);
+      color: #fff;
+      font-weight: 700;
+    }
+
+    .action-btn:active { transform: translateY(1px); }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .metric {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      padding: 12px;
+      min-height: 74px;
+    }
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .metric strong {
+      display: block;
+      margin-top: 7px;
+      font-size: 19px;
+      line-height: 1.1;
+    }
+
+    .report-stack {
+      display: grid;
+      gap: 12px;
+    }
+
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
+
+    .card-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+      margin-bottom: 10px;
+    }
+
+    .card-title h2, .card-title h3 {
+      margin: 0;
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      min-height: 25px;
+      border: 1px solid var(--line);
+      background: #fbfcfd;
+      color: #344054;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      line-height: 1.1;
+    }
+
+    .tag.good { background: var(--good-soft); border-color: #bfe8ca; color: var(--good); }
+    .tag.warn { background: var(--warn-soft); border-color: #f7d795; color: var(--warn); }
+    .tag.risk { background: var(--risk-soft); border-color: #fac6cc; color: var(--risk); }
+    .tag.blue { background: var(--blue-soft); border-color: #c7d7fe; color: var(--blue); }
+
+    .list-item {
+      border-top: 1px solid var(--line-soft);
+      padding-top: 11px;
+      margin-top: 11px;
+    }
+
+    .list-item:first-child {
+      border-top: 0;
+      margin-top: 0;
+      padding-top: 0;
+    }
+
+    .item-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .item-head strong {
+      font-size: 14px;
+      line-height: 1.35;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+      margin-top: 5px;
+    }
+
+    .score {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex: 0 0 auto;
+      min-width: 36px;
+      height: 26px;
+      background: var(--accent);
+      color: #fff;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+    }
+
+    table {
+      width: 100%;
+      min-width: 680px;
+      border-collapse: collapse;
+      table-layout: fixed;
+      font-size: 12.5px;
+      background: #fff;
+    }
+
+    th, td {
+      border-bottom: 1px solid var(--line);
+      border-right: 1px solid var(--line);
+      padding: 8px;
+      text-align: left;
+      vertical-align: top;
+      line-height: 1.45;
+      word-break: break-word;
+    }
+
+    th:last-child, td:last-child { border-right: 0; }
+    tr:last-child td { border-bottom: 0; }
+
+    th {
+      background: #f6f8fa;
+      color: #344054;
+      font-weight: 700;
+    }
+
+    .empty {
+      border: 1px dashed var(--line);
+      background: #fbfcfd;
+      color: var(--muted);
+      padding: 20px;
+      text-align: center;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    .risk-note {
+      background: var(--warn-soft);
+      border: 1px solid #f7d795;
+      color: #7a4300;
+      padding: 10px;
+      font-size: 12.5px;
+      line-height: 1.55;
+      margin-top: 10px;
+    }
+
+    .mobile-only { display: none; }
+
+    @media (max-width: 920px) {
+      .topbar-inner {
+        align-items: flex-start;
+      }
+
+      .time-chip {
+        min-width: 118px;
+      }
+
+      main {
+        grid-template-columns: 1fr;
+      }
+
+      .input-column.hidden-mobile,
+      .report-column.hidden-mobile {
+        display: none;
+      }
+
+      .mobile-only {
+        display: inline-flex;
+      }
+
+      .summary-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 560px) {
+      .topbar {
+        padding: 12px 12px 10px;
+      }
+
+      .topbar-inner {
+        display: block;
+      }
+
+      .time-chip {
+        margin-top: 10px;
+        width: 100%;
+        text-align: left;
+      }
+
+      .nav-tabs {
+        padding: 8px 12px;
+      }
+
+      main {
+        padding: 12px 12px 22px;
+      }
+
+      .field-grid,
+      .summary-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .panel,
+      .card,
+      .metric {
+        padding: 12px;
+      }
+
+      textarea {
+        min-height: 138px;
+      }
+
+      .action-btn {
+        flex: 1 1 120px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div class="brand">
+          <h1>A股短线情报 Agent</h1>
+          <p>每天 10:00 生成新闻驱动日报：板块影响、候选观察、持仓变化和风险提示。</p>
+        </div>
+        <div class="time-chip">
+          <span>下一次日报</span>
+          <strong id="nextRun">10:00</strong>
+        </div>
+      </div>
+    </header>
+
+    <nav class="nav-tabs">
+      <div class="nav-inner">
+        <button class="tab-btn active" data-tab="report">今日日报</button>
+        <button class="tab-btn" data-tab="input">输入配置</button>
+        <button class="tab-btn" data-tab="source">数据规划</button>
+      </div>
+    </nav>
+
+    <main>
+      <aside class="input-column" id="inputPanel">
+        <section class="panel">
+          <h2>输入配置</h2>
+          <p class="caption">V1 先跑通分析流程；V2 再接入新闻源、定时任务和大模型。</p>
+          <div class="field-grid">
+            <div>
+              <label for="reportTime">日报时间</label>
+              <input id="reportTime" value="10:00">
+            </div>
+            <div>
+              <label for="style">短线风格</label>
+              <select id="style">
+                <option>稳健观察</option>
+                <option selected>中等积极</option>
+                <option>高波动热点</option>
+              </select>
+            </div>
+          </div>
+          <label for="holdings">我的持仓</label>
+          <textarea id="holdings">宁德时代 300750
+中际旭创 300308
+贵州茅台 600519</textarea>
+          <div class="actions">
+            <button class="action-btn" id="saveBtn">保存配置</button>
+            <button class="action-btn" id="loadBtn">读取配置</button>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>今日新闻</h2>
+          <label for="newsInput">财经新闻 / 公告 / 政策摘要</label>
+          <textarea id="newsInput">国家发改委表示将继续支持人工智能算力基础设施建设，推动数据中心绿色化改造。
+多家光模块公司披露订单需求旺盛，海外 AI 资本开支仍保持高位。
+新能源汽车产业链传出价格竞争加剧，部分电池材料报价继续承压。
+白酒板块近期渠道反馈偏弱，市场关注中秋备货节奏。</textarea>
+          <div class="actions">
+            <button class="action-btn primary" id="analyzeBtn">生成日报</button>
+            <button class="action-btn" id="sampleBtn">示例新闻</button>
+            <button class="action-btn" id="clearBtn">清空</button>
+          </div>
+        </section>
+
+        <section class="panel" id="sourcePanel">
+          <h2>数据规划</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>模块</th><th>V1</th><th>V2</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>新闻</td><td>手动输入</td><td>财经新闻源 / 公告源</td></tr>
+                <tr><td>板块</td><td>关键词映射</td><td>行业库 + 概念库</td></tr>
+                <tr><td>分析</td><td>规则模拟</td><td>大模型判断影响方向</td></tr>
+                <tr><td>推送</td><td>网页查看</td><td>每日 10:00 自动更新</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="risk-note">产品边界：本工具输出观察和风险提示，不输出买入、卖出、必涨等交易指令。</div>
+        </section>
+      </aside>
+
+      <section class="report-column" id="reportPanel">
+        <div class="summary-grid" id="summaryGrid">
+          <div class="metric"><span>命中板块</span><strong>0</strong></div>
+          <div class="metric"><span>候选观察</span><strong>0</strong></div>
+          <div class="metric"><span>持仓影响</span><strong>0</strong></div>
+          <div class="metric"><span>风险等级</span><strong>待分析</strong></div>
+        </div>
+        <div class="report-stack" id="report">
+          <div class="empty">点击“生成日报”后，这里会输出今日 A 股短线情报。</div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const sectorMap = [
+      {
+        name: "AI 算力 / 光模块",
+        keywords: ["人工智能", "算力", "数据中心", "光模块", "AI 资本开支", "服务器", "英伟达"],
+        trend: "偏利好",
+        stocks: [
+          { name: "中际旭创", code: "300308", quality: "行业地位强", reason: "高速光模块代表公司，和海外 AI 资本开支相关度高。", risk: "短线涨幅大时容易受情绪波动影响。" },
+          { name: "新易盛", code: "300502", quality: "弹性较强", reason: "光模块弹性标的，受 AI 网络建设预期影响明显。", risk: "估值和订单兑现节奏需要跟踪。" },
+          { name: "工业富联", code: "601138", quality: "产业链核心", reason: "AI 服务器产业链代表公司，和算力基础设施相关。", risk: "体量较大，短线弹性通常弱于高弹性标的。" }
+        ]
+      },
+      {
+        name: "半导体 / 国产替代",
+        keywords: ["半导体", "芯片", "国产替代", "光刻", "设备", "晶圆", "先进封装"],
+        trend: "事件驱动",
+        stocks: [
+          { name: "北方华创", code: "002371", quality: "设备龙头", reason: "半导体设备龙头，国产替代主线相关度高。", risk: "估值较高，短线受政策和订单预期影响大。" },
+          { name: "中微公司", code: "688012", quality: "设备代表", reason: "半导体设备代表公司，受晶圆厂资本开支影响。", risk: "科创板波动较大，需关注成交量。" },
+          { name: "长电科技", code: "600584", quality: "封装代表", reason: "先进封装相关标的，受 AI 芯片封装需求影响。", risk: "行业周期和利润弹性需要验证。" }
+        ]
+      },
+      {
+        name: "新能源车 / 电池",
+        keywords: ["新能源", "电池", "锂电", "电池材料", "价格竞争", "储能", "碳酸锂"],
+        trend: "分歧加大",
+        stocks: [
+          { name: "宁德时代", code: "300750", quality: "龙头", reason: "动力电池龙头，产业链景气变化会直接影响市场预期。", risk: "价格战和材料价格波动会压制短线情绪。" },
+          { name: "比亚迪", code: "002594", quality: "整车龙头", reason: "整车与电池一体化代表公司，新能源车销量变化相关度高。", risk: "价格竞争加剧会影响利润预期。" },
+          { name: "天赐材料", code: "002709", quality: "材料代表", reason: "电解液材料代表公司，受材料价格和需求变化影响。", risk: "周期属性较强，短线需关注报价变化。" }
+        ]
+      },
+      {
+        name: "白酒 / 消费",
+        keywords: ["白酒", "消费", "渠道", "中秋", "备货", "高端酒"],
+        trend: "偏谨慎",
+        stocks: [
+          { name: "贵州茅台", code: "600519", quality: "高端核心", reason: "高端白酒核心标的，渠道反馈会影响消费板块预期。", risk: "短线弹性较弱，更适合观察消费情绪变化。" },
+          { name: "五粮液", code: "000858", quality: "高端代表", reason: "高端白酒代表公司，对动销和批价变化敏感。", risk: "渠道信心弱时估值修复可能放缓。" },
+          { name: "泸州老窖", code: "000568", quality: "弹性代表", reason: "白酒弹性代表之一，受行业景气和渠道反馈影响。", risk: "短线跟随板块情绪波动。" }
+        ]
+      }
+    ];
+
+    const holdingsEl = document.getElementById("holdings");
+    const newsEl = document.getElementById("newsInput");
+    const reportEl = document.getElementById("report");
+    const summaryEl = document.getElementById("summaryGrid");
+
+    function parseHoldings() {
+      return holdingsEl.value.split(/\n+/).map(item => item.trim()).filter(Boolean);
+    }
+
+    function getMatchedSectors(news) {
+      return sectorMap
+        .map(sector => ({ ...sector, hits: sector.keywords.filter(keyword => news.includes(keyword)) }))
+        .filter(sector => sector.hits.length);
+    }
+
+    function sectorHeat(sector) {
+      if (sector.hits.length >= 3) return { text: "高", cls: "good" };
+      if (sector.hits.length === 2) return { text: "中", cls: "warn" };
+      return { text: "低", cls: "blue" };
+    }
+
+    function candidateScore(sector, index) {
+      const style = document.getElementById("style").value;
+      const base = style === "高波动热点" ? 86 : style === "稳健观察" ? 78 : 82;
+      return Math.max(68, base + sector.hits.length * 3 - index * 5);
+    }
+
+    function updateSummary(sectors, candidates, impacts) {
+      const risk = sectors.some(s => s.trend.includes("谨慎") || s.trend.includes("分歧")) ? "中高" : sectors.length ? "中等" : "待分析";
+      summaryEl.innerHTML = `
+        <div class="metric"><span>命中板块</span><strong>${sectors.length}</strong></div>
+        <div class="metric"><span>候选观察</span><strong>${candidates.length}</strong></div>
+        <div class="metric"><span>持仓影响</span><strong>${impacts.length}</strong></div>
+        <div class="metric"><span>风险等级</span><strong>${risk}</strong></div>
+      `;
+    }
+
+    function renderReport() {
+      const news = newsEl.value.trim();
+      const holdings = parseHoldings();
+
+      if (!news) {
+        reportEl.innerHTML = '<div class="empty">请先输入今日财经新闻。</div>';
+        updateSummary([], [], []);
+        return;
+      }
+
+      const sectors = getMatchedSectors(news);
+      const candidates = sectors.flatMap(sector => sector.stocks.map((stock, index) => ({
+        ...stock,
+        sector: sector.name,
+        trend: sector.trend,
+        score: candidateScore(sector, index)
+      }))).sort((a, b) => b.score - a.score);
+
+      const impacts = [];
+      holdings.forEach(holding => {
+        sectors.forEach(sector => {
+          sector.stocks.forEach(stock => {
+            if (holding.includes(stock.name) || holding.includes(stock.code)) {
+              impacts.push({ holding, sector: sector.name, trend: sector.trend, stock });
+            }
+          });
+        });
+      });
+
+      updateSummary(sectors, candidates, impacts);
+
+      const sectorHtml = sectors.length ? sectors.map(sector => {
+        const heat = sectorHeat(sector);
+        return `
+          <div class="list-item">
+            <div class="item-head">
+              <strong>${sector.name}</strong>
+              <span class="tag ${heat.cls}">热度 ${heat.text}</span>
+            </div>
+            <div class="tag-row">
+              <span class="tag">${sector.trend}</span>
+              ${sector.hits.map(hit => `<span class="tag good">${hit}</span>`).join("")}
+            </div>
+            <div class="meta">短线观察：10:00 后重点看板块涨幅持续性、成交量放大情况、龙头是否高开低走。</div>
+          </div>
+        `;
+      }).join("") : '<div class="empty">当前新闻没有命中内置板块，请补充关键词或扩展股票池。</div>';
+
+      const candidateRows = candidates.length ? candidates.map(item => `
+        <tr>
+          <td><strong>${item.name}</strong><br><span class="meta">${item.code}</span></td>
+          <td>${item.sector}<br><span class="tag blue">${item.quality}</span></td>
+          <td>${item.reason}</td>
+          <td>${item.risk}</td>
+          <td><span class="score">${item.score}</span></td>
+        </tr>
+      `).join("") : '<tr><td colspan="5">暂无候选观察股。</td></tr>';
+
+      const impactHtml = impacts.length ? impacts.map(item => `
+        <div class="list-item">
+          <div class="item-head">
+            <strong>${item.holding}</strong>
+            <span class="tag warn">${item.trend}</span>
+          </div>
+          <div class="meta">${item.stock.reason}</div>
+          <div class="tag-row">
+            <span class="tag">${item.sector}</span>
+            <span class="tag risk">${item.stock.risk}</span>
+          </div>
+        </div>
+      `).join("") : '<div class="empty">今日新闻没有直接命中你的持仓，但仍需观察大盘情绪和相关板块扩散。</div>';
+
+      reportEl.innerHTML = `
+        <div class="card">
+          <div class="card-title">
+            <h2>1. 新闻影响板块</h2>
+            <span class="tag">A股短线</span>
+          </div>
+          ${sectorHtml}
+        </div>
+
+        <div class="card">
+          <div class="card-title">
+            <h2>2. 候选观察池</h2>
+            <span class="tag">非买卖建议</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr><th>股票</th><th>板块</th><th>入池逻辑</th><th>短线风险</th><th>分数</th></tr>
+              </thead>
+              <tbody>${candidateRows}</tbody>
+            </table>
+          </div>
+          <div class="risk-note">观察分只用于排序，不代表买入建议。短线需要结合盘口、成交量、位置、情绪周期和个人风险承受能力。</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">
+            <h2>3. 持仓影响</h2>
+            <span class="tag">${impacts.length} 条命中</span>
+          </div>
+          ${impactHtml}
+        </div>
+
+        <div class="card">
+          <div class="card-title">
+            <h2>4. 今日风险提示</h2>
+            <span class="tag risk">人工确认</span>
+          </div>
+          <div class="tag-row">
+            <span class="tag risk">不输出买卖指令</span>
+            <span class="tag warn">防高开低走</span>
+            <span class="tag warn">看板块持续性</span>
+            <span class="tag blue">10:00 后二次确认量能</span>
+          </div>
+          <div class="meta">新闻正确不等于股价会立刻上涨。V1 只做信息整理、板块映射和风险提醒，最终决策必须人工判断。</div>
+        </div>
+      `;
+    }
+
+    function saveConfig() {
+      localStorage.setItem("ashare_agent_holdings", holdingsEl.value);
+      localStorage.setItem("ashare_agent_time", document.getElementById("reportTime").value);
+      localStorage.setItem("ashare_agent_style", document.getElementById("style").value);
+      document.getElementById("nextRun").textContent = document.getElementById("reportTime").value || "10:00";
+    }
+
+    function loadConfig() {
+      const holdings = localStorage.getItem("ashare_agent_holdings");
+      const time = localStorage.getItem("ashare_agent_time");
+      const style = localStorage.getItem("ashare_agent_style");
+      if (holdings) holdingsEl.value = holdings;
+      if (time) {
+        document.getElementById("reportTime").value = time;
+        document.getElementById("nextRun").textContent = time;
+      }
+      if (style) document.getElementById("style").value = style;
+    }
+
+    document.getElementById("analyzeBtn").addEventListener("click", renderReport);
+    document.getElementById("saveBtn").addEventListener("click", saveConfig);
+    document.getElementById("loadBtn").addEventListener("click", () => { loadConfig(); renderReport(); });
+    document.getElementById("sampleBtn").addEventListener("click", () => {
+      newsEl.value = `工信部提出加快人工智能基础设施建设，推进算力网络和数据中心协同发展。
+海外 AI 服务器订单维持高景气，光模块需求预期继续上修。
+半导体设备国产替代政策预期升温，先进封装方向受到机构关注。
+消费板块分化，白酒渠道反馈仍偏谨慎。`;
+      renderReport();
+    });
+    document.getElementById("clearBtn").addEventListener("click", () => {
+      newsEl.value = "";
+      renderReport();
+    });
+    document.getElementById("reportTime").addEventListener("input", event => {
+      document.getElementById("nextRun").textContent = event.target.value || "10:00";
+    });
+
+    document.querySelectorAll(".tab-btn").forEach(button => {
+      button.addEventListener("click", () => {
+        document.querySelectorAll(".tab-btn").forEach(item => item.classList.remove("active"));
+        button.classList.add("active");
+        const tab = button.dataset.tab;
+        const inputColumn = document.getElementById("inputPanel");
+        const reportColumn = document.getElementById("reportPanel");
+        if (window.matchMedia("(max-width: 920px)").matches) {
+          inputColumn.classList.toggle("hidden-mobile", tab === "report");
+          reportColumn.classList.toggle("hidden-mobile", tab !== "report");
+          document.getElementById("sourcePanel").style.display = tab === "source" ? "block" : "";
+          if (tab === "source") {
+            inputColumn.classList.remove("hidden-mobile");
+            reportColumn.classList.add("hidden-mobile");
+          }
+        }
+      });
+    });
+
+    window.addEventListener("resize", () => {
+      if (!window.matchMedia("(max-width: 920px)").matches) {
+        document.getElementById("inputPanel").classList.remove("hidden-mobile");
+        document.getElementById("reportPanel").classList.remove("hidden-mobile");
+        document.getElementById("sourcePanel").style.display = "";
+      }
+    });
+
+    loadConfig();
+    renderReport();
+  </script>
+</body>
+</html>
