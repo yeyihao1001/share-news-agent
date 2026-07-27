@@ -1,0 +1,31 @@
+name: Daily A-share News Report
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 2 * * 1-5"
+
+permissions:
+  contents: write
+
+jobs:
+  build-report:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Generate daily report
+        run: python news_agent.py
+
+      - name: Commit report
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Update daily A-share news report"
+          file_pattern: daily-report.json
