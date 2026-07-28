@@ -537,6 +537,32 @@
       const candidates = payload.candidates || [];
       const news = payload.news || [];
       const newsAnalysis = payload.news_analysis || [];
+      const aiNewsAnalysis = payload.ai_news_analysis || [];
+
+      const aiFocusHtml = (payload.ai_focus || []).length ? payload.ai_focus.map(item => `
+        <div class="list-item">
+          <div class="item-head">
+            <strong>${escapeHtml(item.theme)}</strong>
+            <span class="tag blue">AI主线</span>
+          </div>
+          <div class="meta">${escapeHtml(item.reason)}</div>
+          <div class="tag-row">${(item.sectors || []).map(sector => `<span class="tag">${escapeHtml(sector)}</span>`).join("")}</div>
+          <div class="meta"><strong>观察点：</strong>${escapeHtml(item.attention)}</div>
+          <div class="meta"><strong>风险：</strong>${escapeHtml(item.risk)}</div>
+        </div>
+      `).join("") : `<div class="empty">${escapeHtml(payload.ai_error || "未配置 OPENAI_API_KEY，当前展示规则分析。")}</div>`;
+
+      const aiSummaryHtml = `
+        <div class="card">
+          <div class="card-title">
+            <h2>AI 总结</h2>
+            <span class="tag ${payload.ai_enabled ? "good" : "warn"}">${payload.ai_enabled ? "AI 已接入" : "规则模式"}</span>
+          </div>
+          <div class="risk-note">${escapeHtml(payload.ai_summary || payload.ai_error || "未配置 OPENAI_API_KEY，当前使用规则分析。")}</div>
+          ${payload.ai_market_view ? `<div class="meta">${escapeHtml(payload.ai_market_view)}</div>` : ""}
+          ${aiFocusHtml}
+        </div>
+      `;
 
       const sectorHtml = sectors.length ? sectors.map(sector => `
         <div class="list-item">
@@ -596,6 +622,22 @@
         </div>
       `).join("") : `<div class="empty">暂无逐条新闻分析。运行新版 news_agent.py 后会自动生成。</div>`;
 
+      const aiNewsAnalysisHtml = aiNewsAnalysis.length ? aiNewsAnalysis.slice(0, 10).map((item, index) => `
+        <div class="list-item">
+          <div class="item-head">
+            <strong>${index + 1}. ${escapeHtml(item.title)}</strong>
+            <span class="tag blue">AI分析</span>
+          </div>
+          <div class="tag-row">
+            <span class="tag ${item.direction && item.direction.includes("负") ? "warn" : "good"}">${escapeHtml(item.direction)}</span>
+            ${(item.sectors || []).map(sector => `<span class="tag">${escapeHtml(sector)}</span>`).join("")}
+          </div>
+          <div class="meta"><strong>影响判断：</strong>${escapeHtml(item.impact)}</div>
+          <div class="meta"><strong>观察逻辑：</strong>${escapeHtml(item.watch_logic)}</div>
+          <div class="meta"><strong>风险提醒：</strong>${escapeHtml(item.risk)}</div>
+        </div>
+      `).join("") : newsAnalysisHtml;
+
       const impactHtml = impacts.length ? impacts.map(item => `
         <div class="list-item">
           <div class="item-head">
@@ -608,6 +650,7 @@
       `).join("") : `<div class="empty">当前未配置持仓命中。为保护隐私，真实持仓不要放到公开 GitHub 仓库里。</div>`;
 
       target.innerHTML = `
+        ${aiSummaryHtml}
         <div class="card">
           <div class="card-title">
             <h2>1. 新闻影响板块</h2>
@@ -638,9 +681,9 @@
         <div class="card">
           <div class="card-title">
             <h2>4. 逐条新闻分析</h2>
-            <span class="tag blue">${newsAnalysis.length} 条</span>
+            <span class="tag blue">${aiNewsAnalysis.length || newsAnalysis.length} 条</span>
           </div>
-          ${newsAnalysisHtml}
+          ${aiNewsAnalysisHtml}
         </div>
         <div class="card">
           <div class="card-title">
