@@ -3,6 +3,7 @@ name: Daily A-share News Report
 on:
   workflow_dispatch:
   schedule:
+    # GitHub Actions uses UTC. 02:00 UTC = 10:00 China time.
     - cron: "0 2 * * 1-5"
 
 permissions:
@@ -23,6 +24,9 @@ jobs:
 
       - name: Generate daily report
         run: python news_agent.py
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-4.1-mini' }}
 
       - name: Commit report
         uses: stefanzweifel/git-auto-commit-action@v5
