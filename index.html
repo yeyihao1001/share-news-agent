@@ -3,23 +3,30 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <title>A股短线情报 AI Agent</title>
+  <title>A股短线新闻情报 AI Agent</title>
   <style>
     :root {
-      --bg: #f5f7fa;
-      --panel: #fff;
-      --ink: #17202a;
-      --muted: #667085;
+      --bg: #f4f6f8;
+      --surface: #ffffff;
+      --surface-2: #f8fafc;
+      --ink: #151922;
+      --muted: #687385;
+      --soft: #eef1f5;
       --line: #d8dee8;
-      --soft: #edf0f4;
-      --accent: #0f766e;
-      --blue: #1d4ed8;
-      --warn: #a15c07;
-      --risk: #b42318;
-      --good: #166534;
+      --green: #0f766e;
+      --green-soft: #e7f6f3;
+      --blue: #2563eb;
+      --blue-soft: #edf4ff;
+      --amber: #a16207;
+      --amber-soft: #fff7e6;
+      --red: #b42318;
+      --red-soft: #fff1f2;
+      --shadow: 0 10px 26px rgba(15, 23, 42, .07);
+      --radius: 8px;
     }
 
     * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
     body {
       margin: 0;
       min-width: 320px;
@@ -29,174 +36,539 @@
       letter-spacing: 0;
     }
 
-    header {
-      position: sticky;
-      top: 0;
-      z-index: 10;
-      background: rgba(255,255,255,.96);
-      border-bottom: 1px solid var(--line);
-      padding: 14px clamp(14px, 3vw, 30px);
-    }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
 
-    .topbar, main {
-      max-width: 1180px;
+    .shell {
+      max-width: 1240px;
       margin: 0 auto;
+      padding: 18px clamp(14px, 3vw, 30px) 34px;
     }
 
-    .topbar {
+    .hero {
+      background: #101828;
+      color: #fff;
+      border-radius: var(--radius);
+      padding: clamp(18px, 3vw, 28px);
+      box-shadow: var(--shadow);
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 330px;
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-size: clamp(24px, 3.4vw, 38px);
+      line-height: 1.15;
+      font-weight: 750;
+    }
+
+    .hero p {
+      margin: 10px 0 0;
+      max-width: 760px;
+      color: #cbd5e1;
+      font-size: 14px;
+      line-height: 1.75;
+    }
+
+    .hero-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 18px;
+    }
+
+    .run-card {
+      background: rgba(255,255,255,.08);
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: var(--radius);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 180px;
+    }
+
+    .run-card span {
+      display: block;
+      color: #cbd5e1;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .run-card strong {
+      display: block;
+      margin-top: 5px;
+      color: #fff;
+      font-size: 20px;
+      line-height: 1.25;
+    }
+
+    .status-line {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255,255,255,.14);
+      color: #d1d5db;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: #344054;
+      padding: 4px 9px;
+      border-radius: 999px;
+      font-size: 12px;
+      line-height: 1.15;
+      white-space: nowrap;
+    }
+
+    .hero .chip {
+      border-color: rgba(255,255,255,.16);
+      background: rgba(255,255,255,.10);
+      color: #eef2ff;
+    }
+
+    .chip.good { background: var(--green-soft); border-color: #a7ded4; color: var(--green); }
+    .chip.warn { background: var(--amber-soft); border-color: #f3d18a; color: var(--amber); }
+    .chip.risk { background: var(--red-soft); border-color: #f2bdc3; color: var(--red); }
+    .chip.blue { background: var(--blue-soft); border-color: #c8d8ff; color: var(--blue); }
+    .chip.dark { background: #111827; border-color: #111827; color: #fff; }
+
+    .dashboard {
+      display: grid;
+      grid-template-columns: 280px minmax(0, 1fr);
+      gap: 14px;
+      margin-top: 14px;
+      align-items: start;
+    }
+
+    .sidebar {
+      position: sticky;
+      top: 12px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .panel, .metric, .card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: 0 1px 2px rgba(16, 24, 40, .05);
+    }
+
+    .panel { padding: 14px; }
+
+    .panel h2, .card h2 {
+      margin: 0;
+      font-size: 16px;
+      line-height: 1.35;
+      font-weight: 750;
+    }
+
+    .panel p, .meta {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 12.5px;
+      line-height: 1.65;
+    }
+
+    .nav {
+      display: grid;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .nav a {
       display: flex;
       justify-content: space-between;
+      gap: 8px;
+      padding: 9px 10px;
+      border-radius: 6px;
+      color: #344054;
+      font-size: 13px;
+      background: var(--surface-2);
+      border: 1px solid transparent;
+    }
+
+    .nav a:hover {
+      border-color: var(--line);
+      text-decoration: none;
+      background: #fff;
+    }
+
+    .flow {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .flow-step {
+      display: grid;
+      grid-template-columns: 26px minmax(0, 1fr);
+      gap: 8px;
+      align-items: start;
+    }
+
+    .step-no {
+      display: inline-flex;
       align-items: center;
-      gap: 16px;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 999px;
+      background: #111827;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
     }
 
-    h1 { margin: 0; font-size: clamp(20px, 2.5vw, 26px); line-height: 1.2; }
-    .subtitle { margin: 5px 0 0; color: var(--muted); font-size: 12.5px; line-height: 1.5; }
-    .status-chip {
-      border: 1px solid var(--line);
-      background: #fbfcfd;
-      min-width: 180px;
-      padding: 8px 10px;
-      text-align: right;
-      font-size: 12px;
+    .step-text strong {
+      display: block;
+      font-size: 12.5px;
+      line-height: 1.4;
+    }
+
+    .step-text span {
+      display: block;
+      margin-top: 2px;
       color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
     }
-    .status-chip strong { display: block; color: var(--accent); font-size: 15px; margin-top: 2px; }
 
-    main { padding: 16px clamp(14px, 3vw, 30px) 28px; }
+    .holdings-box textarea {
+      width: 100%;
+      min-height: 92px;
+      resize: vertical;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 9px;
+      font-family: inherit;
+      font-size: 12.5px;
+      line-height: 1.5;
+      color: var(--ink);
+      background: #fff;
+    }
+
+    .button-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    button {
+      border: 1px solid var(--line);
+      background: #fff;
+      color: #344054;
+      border-radius: 6px;
+      min-height: 32px;
+      padding: 6px 10px;
+      font-family: inherit;
+      font-size: 12.5px;
+      cursor: pointer;
+    }
+
+    button.primary {
+      background: #111827;
+      border-color: #111827;
+      color: #fff;
+    }
+
+    .content {
+      min-width: 0;
+    }
+
     .summary-grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 10px;
-      margin-bottom: 14px;
+      margin-bottom: 12px;
     }
-    .metric, .card {
-      background: var(--panel);
-      border: 1px solid var(--line);
-      box-shadow: 0 1px 2px rgba(16,24,40,.06);
+
+    .metric {
+      padding: 13px;
+      min-height: 82px;
     }
-    .metric { padding: 12px; min-height: 74px; }
-    .metric span { display: block; color: var(--muted); font-size: 12px; }
-    .metric strong { display: block; margin-top: 7px; font-size: 19px; }
-    .card { padding: 14px; margin-bottom: 12px; }
-    .card-title {
+
+    .metric span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    .metric strong {
+      display: block;
+      margin-top: 8px;
+      color: var(--ink);
+      font-size: 22px;
+      line-height: 1.1;
+    }
+
+    .metric small {
+      display: block;
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 11.5px;
+      line-height: 1.35;
+    }
+
+    .card {
+      padding: 15px;
+      margin-bottom: 12px;
+      scroll-margin-top: 16px;
+    }
+
+    .card-head {
       display: flex;
       justify-content: space-between;
       gap: 12px;
       align-items: flex-start;
-      margin-bottom: 10px;
+      margin-bottom: 11px;
     }
-    h2 { margin: 0; font-size: 16px; line-height: 1.35; }
-    .meta { color: var(--muted); font-size: 12px; line-height: 1.6; margin-top: 5px; }
-    .list-item { border-top: 1px solid var(--soft); padding-top: 11px; margin-top: 11px; }
-    .list-item:first-child { border-top: 0; margin-top: 0; padding-top: 0; }
-    .item-head { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
-    .item-head strong { font-size: 14px; line-height: 1.35; }
-    .tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-    .tag {
-      display: inline-flex;
-      align-items: center;
-      min-height: 25px;
-      border: 1px solid var(--line);
-      background: #fbfcfd;
-      color: #344054;
-      padding: 4px 8px;
-      border-radius: 999px;
-      font-size: 12px;
-      line-height: 1.1;
+
+    .card-actions {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 6px;
     }
-    .tag.good { background: #eefbf2; border-color: #bfe8ca; color: var(--good); }
-    .tag.warn { background: #fff7e6; border-color: #f7d795; color: var(--warn); }
-    .tag.risk { background: #fff1f2; border-color: #fac6cc; color: var(--risk); }
-    .tag.blue { background: #eef4ff; border-color: #c7d7fe; color: var(--blue); }
-    .note {
-      background: #fff7e6;
-      border: 1px solid #f7d795;
-      color: #7a4300;
+
+    .notice {
+      background: var(--amber-soft);
+      border: 1px solid #f3d18a;
+      color: #754300;
+      border-radius: 6px;
       padding: 10px;
       font-size: 12.5px;
-      line-height: 1.6;
+      line-height: 1.65;
       margin-top: 10px;
     }
+
     .empty {
       border: 1px dashed var(--line);
-      background: #fbfcfd;
+      background: var(--surface-2);
       color: var(--muted);
+      border-radius: 6px;
       padding: 18px;
       text-align: center;
       font-size: 13px;
-      line-height: 1.55;
+      line-height: 1.6;
     }
-    .table-wrap { overflow-x: auto; border: 1px solid var(--line); }
+
+    .item {
+      border-top: 1px solid var(--soft);
+      padding-top: 12px;
+      margin-top: 12px;
+    }
+
+    .item:first-child {
+      border-top: 0;
+      margin-top: 0;
+      padding-top: 0;
+    }
+
+    .item-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .item-head strong {
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 8px;
+    }
+
+    .score {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 42px;
+      height: 28px;
+      border-radius: 6px;
+      background: var(--green);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 750;
+    }
+
+    .impact-box {
+      margin-top: 9px;
+      border: 1px solid var(--line);
+      background: var(--surface-2);
+      border-radius: 6px;
+      padding: 10px;
+    }
+
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+    }
+
     table {
       width: 100%;
-      min-width: 760px;
+      min-width: 820px;
       border-collapse: collapse;
       table-layout: fixed;
       font-size: 12.5px;
       background: #fff;
     }
+
     th, td {
       border-bottom: 1px solid var(--line);
       border-right: 1px solid var(--line);
-      padding: 8px;
+      padding: 9px;
       text-align: left;
       vertical-align: top;
-      line-height: 1.45;
+      line-height: 1.5;
       word-break: break-word;
     }
-    th { background: #f6f8fa; color: #344054; font-weight: 700; }
+
+    th {
+      background: #f6f8fa;
+      color: #344054;
+      font-weight: 750;
+    }
+
     th:last-child, td:last-child { border-right: 0; }
     tr:last-child td { border-bottom: 0; }
-    .score {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 38px;
-      height: 26px;
-      background: var(--accent);
-      color: #fff;
-      border-radius: 6px;
-      font-size: 12px;
-      font-weight: 700;
-    }
-    a { color: var(--blue); text-decoration: none; }
-    a:hover { text-decoration: underline; }
 
-    @media (max-width: 760px) {
-      .topbar { display: block; }
-      .status-chip { width: 100%; text-align: left; margin-top: 10px; }
-      .summary-grid { grid-template-columns: repeat(2, 1fr); }
+    .news-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
     }
-    @media (max-width: 520px) {
+
+    .news-card {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: var(--surface-2);
+      padding: 10px;
+      min-height: 118px;
+    }
+
+    .news-card strong {
+      display: block;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .footer-note {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.7;
+      text-align: center;
+      padding: 8px 0 0;
+    }
+
+    @media (max-width: 980px) {
+      .hero, .dashboard { grid-template-columns: 1fr; }
+      .sidebar { position: static; }
+      .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 640px) {
+      .shell { padding: 12px 12px 24px; }
+      .hero { padding: 16px; }
+      .hero-meta { margin-top: 14px; }
       .summary-grid { grid-template-columns: 1fr; }
-      .card, .metric { padding: 12px; }
+      .card, .panel, .metric { padding: 12px; }
+      .card-head, .item-head { display: block; }
+      .card-actions { justify-content: flex-start; margin-top: 8px; }
+      .news-grid { grid-template-columns: 1fr; }
+      .button-row { display: grid; grid-template-columns: 1fr 1fr; }
     }
   </style>
 </head>
 <body>
-  <header>
-    <div class="topbar">
+  <div class="shell">
+    <section class="hero">
       <div>
-        <h1>A股短线情报 AI Agent</h1>
-        <p class="subtitle">每天 10:00 自动抓取财经快讯，生成 AI 主线判断、板块影响、候选观察池和逐条新闻分析。</p>
+        <h1>A股短线新闻情报 AI Agent</h1>
+        <p>每天 10:00 自动抓取公开财经快讯，完成数据时效检查、AI 主线判断、板块影响拆解、候选观察池排序和持仓影响提醒。定位是信息整理与决策辅助，不输出买卖指令。</p>
+        <div class="hero-meta">
+          <span class="chip">GitHub Actions 定时运行</span>
+          <span class="chip">东方财富快讯 + 雪球 RSS</span>
+          <span class="chip">Terln / OpenAI 兼容接口</span>
+          <span class="chip">手机端可查看</span>
+        </div>
       </div>
-      <div class="status-chip">
-        <span id="statusText">正在读取日报</span>
-        <strong id="reportTime">--</strong>
-      </div>
-    </div>
-  </header>
+      <aside class="run-card">
+        <div>
+          <span id="statusText">正在读取日报</span>
+          <strong id="reportTime">--</strong>
+        </div>
+        <div class="status-line" id="statusLine">等待 daily-report.json 返回。</div>
+      </aside>
+    </section>
 
-  <main>
-    <section class="summary-grid" id="summaryGrid"></section>
-    <section id="report"><div class="empty">正在读取 daily-report.json...</div></section>
-  </main>
+    <section class="dashboard">
+      <aside class="sidebar">
+        <div class="panel">
+          <h2>页面导航</h2>
+          <p>按面试讲述顺序组织：先讲系统是否跑通，再讲 AI 怎么分析，最后讲结果如何落到股票和持仓。</p>
+          <nav class="nav">
+            <a href="#freshness">数据时效性 <span>01</span></a>
+            <a href="#ai-summary">AI 总结 <span>02</span></a>
+            <a href="#sectors">板块影响 <span>03</span></a>
+            <a href="#candidates">候选观察池 <span>04</span></a>
+            <a href="#holdings">持仓影响 <span>05</span></a>
+            <a href="#news-analysis">逐条新闻分析 <span>06</span></a>
+          </nav>
+        </div>
+
+        <div class="panel">
+          <h2>Agent 工作链路</h2>
+          <div class="flow">
+            <div class="flow-step"><span class="step-no">1</span><div class="step-text"><strong>定时触发</strong><span>工作日 10:00 自动运行，也支持手动触发。</span></div></div>
+            <div class="flow-step"><span class="step-no">2</span><div class="step-text"><strong>抓取新闻</strong><span>优先取实时快讯，再补充社区 RSS。</span></div></div>
+            <div class="flow-step"><span class="step-no">3</span><div class="step-text"><strong>AI 分析</strong><span>按新闻拆影响方向、板块、风险和观察点。</span></div></div>
+            <div class="flow-step"><span class="step-no">4</span><div class="step-text"><strong>网页呈现</strong><span>只展示结构化结果，不在前端暴露 API Key。</span></div></div>
+          </div>
+        </div>
+
+        <div class="panel holdings-box">
+          <h2>本地持仓观察</h2>
+          <p>这里的数据只存在当前浏览器，用于演示“持仓影响匹配”。不要把真实持仓写进公开仓库。</p>
+          <textarea id="holdingsInput" spellcheck="false"></textarea>
+          <div class="button-row">
+            <button class="primary" type="button" id="saveHoldings">保存</button>
+            <button type="button" id="resetHoldings">重置</button>
+          </div>
+        </div>
+      </aside>
+
+      <main class="content">
+        <section class="summary-grid" id="summaryGrid"></section>
+        <section id="report"><div class="empty">正在读取 daily-report.json...</div></section>
+        <p class="footer-note">本工具用于新闻信息整理、影响链路分析与风险提示，不构成投资建议。</p>
+      </main>
+    </section>
+  </div>
 
   <script>
     const defaultHoldings = ["宁德时代 300750", "中际旭创 300308", "贵州茅台 600519"];
     const reportEl = document.getElementById("report");
     const summaryEl = document.getElementById("summaryGrid");
+    const holdingsInput = document.getElementById("holdingsInput");
+    const saveHoldingsBtn = document.getElementById("saveHoldings");
+    const resetHoldingsBtn = document.getElementById("resetHoldings");
+    let latestPayload = null;
 
     function escapeHtml(value) {
       return String(value ?? "").replace(/[&<>"']/g, char => ({
@@ -207,6 +579,10 @@
     function getHoldings() {
       const saved = localStorage.getItem("ashare_agent_holdings");
       return (saved ? saved.split(/\n+/) : defaultHoldings).map(item => item.trim()).filter(Boolean);
+    }
+
+    function initHoldingsInput() {
+      holdingsInput.value = getHoldings().join("\n");
     }
 
     function getImpacts(candidates) {
@@ -222,75 +598,101 @@
       return impacts;
     }
 
-    function renderSummary(payload, impacts) {
-      const freshness = payload.freshness || {};
-      summaryEl.innerHTML = `
-        <div class="metric"><span>今日新闻</span><strong>${freshness.today_count ?? 0}</strong></div>
-        <div class="metric"><span>命中板块</span><strong>${(payload.sectors || []).length}</strong></div>
-        <div class="metric"><span>候选观察</span><strong>${(payload.candidates || []).length}</strong></div>
-        <div class="metric"><span>AI 状态</span><strong>${payload.ai_enabled ? "已接入" : "规则模式"}</strong></div>
-      `;
+    function trendClass(text) {
+      const value = String(text || "");
+      if (value.includes("负") || value.includes("谨慎") || value.includes("分歧")) return "warn";
+      if (value.includes("风险")) return "risk";
+      return "good";
     }
 
-    function renderAiCard(payload) {
-      const aiFocus = payload.ai_focus || [];
-      return `
-        <div class="card">
-          <div class="card-title">
-            <h2>AI 总结</h2>
-            <span class="tag ${payload.ai_enabled ? "good" : "warn"}">${payload.ai_enabled ? "AI 已接入" : "规则模式"}</span>
-          </div>
-          <div class="note">${escapeHtml(payload.ai_summary || payload.ai_error || "未配置 AI Key，当前展示规则分析。")}</div>
-          ${payload.ai_market_view ? `<div class="meta">${escapeHtml(payload.ai_market_view)}</div>` : ""}
-          ${aiFocus.map(item => `
-            <div class="list-item">
-              <div class="item-head"><strong>${escapeHtml(item.theme)}</strong><span class="tag blue">AI主线</span></div>
-              <div class="meta">${escapeHtml(item.reason)}</div>
-              <div class="tag-row">${(item.sectors || []).map(sector => `<span class="tag">${escapeHtml(sector)}</span>`).join("")}</div>
-              <div class="meta"><strong>观察点：</strong>${escapeHtml(item.attention)}</div>
-              <div class="meta"><strong>风险：</strong>${escapeHtml(item.risk)}</div>
-            </div>
-          `).join("")}
-        </div>
+    function renderSummary(payload, impacts) {
+      const freshness = payload.freshness || {};
+      const latest = freshness.latest_news_time || "--";
+      summaryEl.innerHTML = `
+        <div class="metric"><span>今日新闻</span><strong>${freshness.today_count ?? 0}</strong><small>共抓取 ${freshness.total_count ?? (payload.news || []).length} 条</small></div>
+        <div class="metric"><span>命中板块</span><strong>${(payload.sectors || []).length}</strong><small>由新闻关键词和 AI 判断生成</small></div>
+        <div class="metric"><span>候选观察</span><strong>${(payload.candidates || []).length}</strong><small>只作为观察池排序</small></div>
+        <div class="metric"><span>持仓命中</span><strong>${impacts.length}</strong><small>基于本地浏览器输入匹配</small></div>
       `;
+      document.getElementById("statusText").textContent = payload.ai_enabled ? "AI 日报已更新" : "规则日报已更新";
+      document.getElementById("reportTime").textContent = payload.generated_label || "--";
+      document.getElementById("statusLine").textContent = `最新新闻：${latest}；AI 状态：${payload.ai_enabled ? "已接入" : "规则模式"}；版本：${payload.version || "--"}`;
     }
 
     function renderFreshness(payload) {
       const freshness = payload.freshness || {};
       const sources = freshness.sources || [];
       return `
-        <div class="card">
-          <div class="card-title">
-            <h2>数据时效性</h2>
-            <span class="tag ${freshness.is_fresh ? "good" : "warn"}">${freshness.is_fresh ? "已抓到今日新闻" : "新闻源可能滞后"}</span>
+        <section class="card" id="freshness">
+          <div class="card-head">
+            <div>
+              <h2>1. 数据时效性</h2>
+              <p class="meta">先确认今天是否真的抓到了新新闻，避免“日报运行了，但数据还是旧的”。</p>
+            </div>
+            <div class="card-actions">
+              <span class="chip ${freshness.is_fresh ? "good" : "warn"}">${freshness.is_fresh ? "已抓到今日新闻" : "新闻源可能滞后"}</span>
+              <span class="chip">${escapeHtml(payload.version || "V3.1")}</span>
+            </div>
           </div>
-          <div class="tag-row">
-            <span class="tag blue">日报生成：${escapeHtml(payload.generated_label || "--")}</span>
-            <span class="tag">最新新闻：${escapeHtml(freshness.latest_news_time || "--")}</span>
-            <span class="tag">来源：${escapeHtml(freshness.latest_news_source || "--")}</span>
+          <div class="tags">
+            <span class="chip blue">日报生成：${escapeHtml(payload.generated_label || "--")}</span>
+            <span class="chip">最新新闻：${escapeHtml(freshness.latest_news_time || "--")}</span>
+            <span class="chip">最新来源：${escapeHtml(freshness.latest_news_source || "--")}</span>
           </div>
-          ${freshness.warning ? `<div class="note">${escapeHtml(freshness.warning)}</div>` : ""}
-          <div class="tag-row">${sources.map(item => `<span class="tag">${escapeHtml(item.name)} ${item.items || 0}条</span>`).join("")}</div>
-        </div>
+          ${freshness.warning ? `<div class="notice">${escapeHtml(freshness.warning)}</div>` : ""}
+          <div class="tags">${sources.map(item => `<span class="chip">${escapeHtml(item.name)} ${item.items || 0} 条</span>`).join("")}</div>
+        </section>
+      `;
+    }
+
+    function renderAiCard(payload) {
+      const aiFocus = payload.ai_focus || [];
+      return `
+        <section class="card" id="ai-summary">
+          <div class="card-head">
+            <div>
+              <h2>2. AI 总结</h2>
+              <p class="meta">把多条新闻压缩成可读的短线主线、观察点和风险点。</p>
+            </div>
+            <span class="chip ${payload.ai_enabled ? "good" : "warn"}">${payload.ai_enabled ? "AI 已接入" : "规则模式"}</span>
+          </div>
+          <div class="notice">${escapeHtml(payload.ai_summary || payload.ai_error || "未配置 AI Key，当前展示规则分析。")}</div>
+          ${payload.ai_market_view ? `<p class="meta">${escapeHtml(payload.ai_market_view)}</p>` : ""}
+          ${aiFocus.length ? aiFocus.map(item => `
+            <div class="item">
+              <div class="item-head"><strong>${escapeHtml(item.theme)}</strong><span class="chip blue">AI 主线</span></div>
+              <p class="meta">${escapeHtml(item.reason)}</p>
+              <div class="tags">${(item.sectors || []).map(sector => `<span class="chip">${escapeHtml(sector)}</span>`).join("")}</div>
+              <p class="meta"><strong>观察点：</strong>${escapeHtml(item.attention)}</p>
+              <p class="meta"><strong>风险：</strong>${escapeHtml(item.risk)}</p>
+            </div>
+          `).join("") : ""}
+        </section>
       `;
     }
 
     function renderSectors(payload) {
       const sectors = payload.sectors || [];
       return `
-        <div class="card">
-          <div class="card-title"><h2>1. 新闻影响板块</h2><span class="tag">${escapeHtml(payload.version || "V3.1")}</span></div>
+        <section class="card" id="sectors">
+          <div class="card-head">
+            <div>
+              <h2>3. 新闻影响板块</h2>
+              <p class="meta">每个板块展示命中原因和热度分，方便盘中快速筛选方向。</p>
+            </div>
+            <span class="chip">${sectors.length} 个板块</span>
+          </div>
           ${sectors.length ? sectors.map(sector => `
-            <div class="list-item">
+            <div class="item">
               <div class="item-head"><strong>${escapeHtml(sector.name)}</strong><span class="score">${escapeHtml(sector.heat || "-")}</span></div>
-              <div class="tag-row">
-                <span class="tag ${sector.trend === "偏谨慎" || sector.trend === "分歧加大" ? "warn" : "good"}">${escapeHtml(sector.trend)}</span>
-                ${(sector.hits || []).map(hit => `<span class="tag blue">${escapeHtml(hit)}</span>`).join("")}
+              <div class="tags">
+                <span class="chip ${trendClass(sector.trend)}">${escapeHtml(sector.trend)}</span>
+                ${(sector.hits || []).map(hit => `<span class="chip blue">${escapeHtml(hit)}</span>`).join("")}
               </div>
-              <div class="meta">${escapeHtml(sector.short_view)}</div>
+              <p class="meta">${escapeHtml(sector.short_view)}</p>
             </div>
           `).join("") : `<div class="empty">当前新闻暂未命中内置板块。</div>`}
-        </div>
+        </section>
       `;
     }
 
@@ -298,38 +700,50 @@
       const rows = (payload.candidates || []).map(item => `
         <tr>
           <td><strong>${escapeHtml(item.name)}</strong><br><span class="meta">${escapeHtml(item.code)}</span></td>
-          <td>${escapeHtml(item.sector)}<br><span class="tag blue">${escapeHtml(item.quality)}</span></td>
+          <td>${escapeHtml(item.sector)}<br><span class="chip blue">${escapeHtml(item.quality)}</span></td>
           <td>${escapeHtml(item.reason)}</td>
           <td>${escapeHtml(item.risk)}</td>
           <td><span class="score">${escapeHtml(item.score)}</span></td>
         </tr>
       `).join("");
       return `
-        <div class="card">
-          <div class="card-title"><h2>2. 候选观察池</h2><span class="tag risk">非买卖建议</span></div>
+        <section class="card" id="candidates">
+          <div class="card-head">
+            <div>
+              <h2>4. 候选观察池</h2>
+              <p class="meta">这里不是荐股，而是把新闻影响链路比较清楚的标的放入观察池。</p>
+            </div>
+            <span class="chip risk">非买卖建议</span>
+          </div>
           <div class="table-wrap">
             <table>
               <thead><tr><th>股票</th><th>板块</th><th>入池逻辑</th><th>短线风险</th><th>分数</th></tr></thead>
               <tbody>${rows || `<tr><td colspan="5">暂无候选观察股。</td></tr>`}</tbody>
             </table>
           </div>
-          <div class="note">观察分只用于信息排序，不代表买入建议。短线仍需结合盘口、成交量、位置和个人风险承受能力。</div>
-        </div>
+          <div class="notice">观察分只用于信息排序，不代表买入建议。短线仍需结合盘口、成交量、位置和个人风险承受能力。</div>
+        </section>
       `;
     }
 
     function renderHoldingImpacts(impacts) {
       return `
-        <div class="card">
-          <div class="card-title"><h2>3. 持仓影响</h2><span class="tag">${impacts.length} 条命中</span></div>
-          ${impacts.length ? impacts.map(item => `
-            <div class="list-item">
-              <div class="item-head"><strong>${escapeHtml(item.holding)}</strong><span class="tag warn">${escapeHtml(item.trend)}</span></div>
-              <div class="meta">${escapeHtml(item.reason)}</div>
-              <div class="tag-row"><span class="tag">${escapeHtml(item.sector)}</span><span class="tag risk">${escapeHtml(item.risk)}</span></div>
+        <section class="card" id="holdings">
+          <div class="card-head">
+            <div>
+              <h2>5. 持仓影响</h2>
+              <p class="meta">用本地输入的持仓，匹配今日候选观察池里的相关股票。</p>
             </div>
-          `).join("") : `<div class="empty">当前未命中默认持仓。真实持仓不要放到公开 GitHub 仓库。</div>`}
-        </div>
+            <span class="chip">${impacts.length} 条命中</span>
+          </div>
+          ${impacts.length ? impacts.map(item => `
+            <div class="item">
+              <div class="item-head"><strong>${escapeHtml(item.holding)}</strong><span class="chip ${trendClass(item.trend)}">${escapeHtml(item.trend)}</span></div>
+              <p class="meta">${escapeHtml(item.reason)}</p>
+              <div class="tags"><span class="chip">${escapeHtml(item.sector)}</span><span class="chip risk">${escapeHtml(item.risk)}</span></div>
+            </div>
+          `).join("") : `<div class="empty">当前未命中本地持仓。可在左侧输入股票名称或代码后保存。</div>`}
+        </section>
       `;
     }
 
@@ -339,85 +753,117 @@
       const useAi = aiItems.length > 0;
       const items = useAi ? aiItems : ruleItems;
       return `
-        <div class="card">
-          <div class="card-title"><h2>4. 逐条新闻分析</h2><span class="tag blue">${items.length} 条</span></div>
+        <section class="card" id="news-analysis">
+          <div class="card-head">
+            <div>
+              <h2>6. 逐条新闻分析</h2>
+              <p class="meta">每条新闻单独判断影响方向，避免只给一个笼统总结。</p>
+            </div>
+            <span class="chip blue">${items.length} 条</span>
+          </div>
           ${items.length ? items.slice(0, 12).map((item, index) => {
             if (useAi) {
               return `
-                <div class="list-item">
-                  <div class="item-head"><strong>${index + 1}. ${escapeHtml(item.title)}</strong><span class="tag blue">AI分析</span></div>
-                  <div class="tag-row">
-                    <span class="tag ${item.direction && item.direction.includes("负") ? "warn" : "good"}">${escapeHtml(item.direction)}</span>
-                    ${(item.sectors || []).map(sector => `<span class="tag">${escapeHtml(sector)}</span>`).join("")}
+                <div class="item">
+                  <div class="item-head"><strong>${index + 1}. ${escapeHtml(item.title)}</strong><span class="chip blue">AI 分析</span></div>
+                  <div class="tags">
+                    <span class="chip ${trendClass(item.direction)}">${escapeHtml(item.direction)}</span>
+                    ${(item.sectors || []).map(sector => `<span class="chip">${escapeHtml(sector)}</span>`).join("")}
                   </div>
-                  <div class="meta"><strong>影响判断：</strong>${escapeHtml(item.impact)}</div>
-                  <div class="meta"><strong>观察逻辑：</strong>${escapeHtml(item.watch_logic)}</div>
-                  <div class="meta"><strong>风险提醒：</strong>${escapeHtml(item.risk)}</div>
+                  <p class="meta"><strong>影响判断：</strong>${escapeHtml(item.impact)}</p>
+                  <p class="meta"><strong>观察逻辑：</strong>${escapeHtml(item.watch_logic)}</p>
+                  <p class="meta"><strong>风险提醒：</strong>${escapeHtml(item.risk)}</p>
                 </div>
               `;
             }
             return `
-              <div class="list-item">
-                <div class="item-head"><strong>${index + 1}. <a href="${escapeHtml(item.url)}" target="_blank" rel="noopener">${escapeHtml(item.title)}</a></strong><span class="tag ${item.is_today ? "good" : "warn"}">${item.is_today ? "今日" : "非今日"}</span></div>
-                <div class="meta">${escapeHtml(item.source)} · ${escapeHtml(item.published_label || item.published || "")}</div>
-                ${item.summary ? `<div class="meta">${escapeHtml(item.summary)}</div>` : ""}
+              <div class="item">
+                <div class="item-head"><strong>${index + 1}. <a href="${escapeHtml(item.url)}" target="_blank" rel="noopener">${escapeHtml(item.title)}</a></strong><span class="chip ${item.is_today ? "good" : "warn"}">${item.is_today ? "今日" : "非今日"}</span></div>
+                <p class="meta">${escapeHtml(item.source)} · ${escapeHtml(item.published_label || item.published || "")}</p>
+                ${item.summary ? `<p class="meta">${escapeHtml(item.summary)}</p>` : ""}
                 ${(item.impacts || []).map(impact => `
-                  <div class="note">
-                    <div class="tag-row">
-                      <span class="tag blue">${escapeHtml(impact.sector)}</span>
-                      <span class="tag">${escapeHtml(impact.direction)}</span>
-                      ${(impact.hits || []).map(hit => `<span class="tag">${escapeHtml(hit)}</span>`).join("")}
+                  <div class="impact-box">
+                    <div class="tags">
+                      <span class="chip blue">${escapeHtml(impact.sector)}</span>
+                      <span class="chip ${trendClass(impact.direction)}">${escapeHtml(impact.direction)}</span>
+                      ${(impact.hits || []).map(hit => `<span class="chip">${escapeHtml(hit)}</span>`).join("")}
                     </div>
-                    <div class="meta"><strong>影响逻辑：</strong>${escapeHtml(impact.logic)}</div>
-                    ${(impact.watch_stocks || []).length ? `<div class="meta"><strong>观察股：</strong>${impact.watch_stocks.map(stock => `${escapeHtml(stock.name)} ${escapeHtml(stock.code)}`).join("、")}</div>` : ""}
-                    <div class="meta"><strong>风险提醒：</strong>${escapeHtml(impact.risk)}</div>
+                    <p class="meta"><strong>影响逻辑：</strong>${escapeHtml(impact.logic)}</p>
+                    ${(impact.watch_stocks || []).length ? `<p class="meta"><strong>观察股：</strong>${impact.watch_stocks.map(stock => `${escapeHtml(stock.name)} ${escapeHtml(stock.code)}`).join("、")}</p>` : ""}
+                    <p class="meta"><strong>风险提醒：</strong>${escapeHtml(impact.risk)}</p>
                   </div>
                 `).join("")}
               </div>
             `;
           }).join("") : `<div class="empty">暂无逐条新闻分析。</div>`}
-        </div>
+        </section>
       `;
     }
 
     function renderRawNews(payload) {
       const news = payload.news || [];
       return `
-        <div class="card">
-          <div class="card-title"><h2>5. 原始新闻</h2><span class="tag blue">${news.length} 条</span></div>
-          ${news.length ? news.slice(0, 15).map(item => `
-            <div class="list-item">
-              <div class="item-head"><strong><a href="${escapeHtml(item.url)}" target="_blank" rel="noopener">${escapeHtml(item.title)}</a></strong><span class="tag ${item.is_today ? "good" : "warn"}">${item.is_today ? "今日" : "非今日"}</span></div>
-              <div class="meta">${escapeHtml(item.source)} · ${escapeHtml(item.published_label || item.published || "")}</div>
+        <section class="card" id="raw-news">
+          <div class="card-head">
+            <div>
+              <h2>7. 原始新闻</h2>
+              <p class="meta">保留原始新闻链接，方便复盘 AI 结论是否合理。</p>
             </div>
-          `).join("") : `<div class="empty">暂无新闻数据。</div>`}
-        </div>
+            <span class="chip blue">${news.length} 条</span>
+          </div>
+          <div class="news-grid">
+            ${news.length ? news.slice(0, 12).map(item => `
+              <article class="news-card">
+                <strong><a href="${escapeHtml(item.url)}" target="_blank" rel="noopener">${escapeHtml(item.title)}</a></strong>
+                <div class="tags"><span class="chip ${item.is_today ? "good" : "warn"}">${item.is_today ? "今日" : "非今日"}</span><span class="chip">${escapeHtml(item.source)}</span></div>
+                <p class="meta">${escapeHtml(item.published_label || item.published || "")}</p>
+              </article>
+            `).join("") : `<div class="empty">暂无新闻数据。</div>`}
+          </div>
+        </section>
       `;
     }
 
+    function renderReport(payload) {
+      latestPayload = payload;
+      const impacts = getImpacts(payload.candidates || []);
+      renderSummary(payload, impacts);
+      reportEl.innerHTML = [
+        renderFreshness(payload),
+        renderAiCard(payload),
+        renderSectors(payload),
+        renderCandidates(payload),
+        renderHoldingImpacts(impacts),
+        renderNewsAnalysis(payload),
+        renderRawNews(payload),
+      ].join("");
+    }
+
     async function loadReport() {
+      initHoldingsInput();
       try {
         const response = await fetch(`daily-report.json?t=${Date.now()}`, { cache: "no-store" });
         if (!response.ok) throw new Error("daily-report.json not found");
         const payload = await response.json();
-        const impacts = getImpacts(payload.candidates || []);
-        renderSummary(payload, impacts);
-        document.getElementById("statusText").textContent = "自动日报已更新";
-        document.getElementById("reportTime").textContent = payload.generated_label || "--";
-        reportEl.innerHTML = [
-          renderFreshness(payload),
-          renderAiCard(payload),
-          renderSectors(payload),
-          renderCandidates(payload),
-          renderHoldingImpacts(impacts),
-          renderNewsAnalysis(payload),
-          renderRawNews(payload),
-        ].join("");
+        renderReport(payload);
       } catch (error) {
         summaryEl.innerHTML = "";
+        document.getElementById("statusText").textContent = "日报读取失败";
+        document.getElementById("statusLine").textContent = "请先运行 GitHub Actions 生成 daily-report.json，或确认文件已上传到仓库根目录。";
         reportEl.innerHTML = `<div class="empty">还没有读取到自动日报。请先运行 GitHub Actions 生成 daily-report.json。</div>`;
       }
     }
+
+    saveHoldingsBtn.addEventListener("click", () => {
+      localStorage.setItem("ashare_agent_holdings", holdingsInput.value);
+      if (latestPayload) renderReport(latestPayload);
+    });
+
+    resetHoldingsBtn.addEventListener("click", () => {
+      localStorage.removeItem("ashare_agent_holdings");
+      initHoldingsInput();
+      if (latestPayload) renderReport(latestPayload);
+    });
 
     loadReport();
   </script>
