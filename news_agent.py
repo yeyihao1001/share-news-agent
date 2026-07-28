@@ -2,9 +2,12 @@ import json
 import os
 import re
 import time
+import uuid
 from datetime import datetime, timedelta, timezone
+from email.utils import parsedate_to_datetime
 from pathlib import Path
 from urllib.error import HTTPError, URLError
+from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 from xml.etree import ElementTree as ET
 
@@ -15,17 +18,20 @@ OPENAI_BASE_URL = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1")
 OPENAI_URL = f"{OPENAI_BASE_URL}/chat/completions"
 OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4.1-mini")
 
+EASTMONEY_COLUMNS = [
+    {"name": "东方财富财经快讯", "column": "351"},
+    {"name": "东方财富A股快讯", "column": "345"},
+    {"name": "东方财富市场快讯", "column": "344"},
+]
+
 RSS_SOURCES = [
     {"name": "雪球今日话题", "url": "https://xueqiu.com/hots/topic/rss"},
-    {"name": "新浪财经要闻", "url": "https://rss.sina.com.cn/roll/finance/hot_roll.xml"},
-    {"name": "新浪股票要闻", "url": "https://rss.sina.com.cn/roll/stock/hot_roll.xml"},
-    {"name": "新浪股市及时雨", "url": "https://rss.sina.com.cn/finance/jsy.xml"},
 ]
 
 SECTOR_RULES = [
     {
         "name": "AI算力 / 光模块",
-        "keywords": ["人工智能", "AI", "算力", "数据中心", "光模块", "服务器", "英伟达", "大模型", "光通信"],
+        "keywords": ["人工智能", "AI", "算力", "数据中心", "光模块", "服务器", "英伟达", "大模型", "Kimi", "开源模型", "光通信"],
         "trend": "偏利好",
         "stocks": [
             {"name": "中际旭创", "code": "300308", "quality": "行业地位强", "reason": "高速光模块代表公司，和海外 AI 资本开支相关度较高。", "risk": "短线涨幅大时容易受情绪波动影响。"},
@@ -35,7 +41,7 @@ SECTOR_RULES = [
     },
     {
         "name": "半导体 / 国产替代",
-        "keywords": ["半导体", "芯片", "国产替代", "光刻", "设备", "晶圆", "先进封装", "存储"],
+        "keywords": ["半导体", "芯片", "国产替代", "光刻", "设备", "晶圆", "先进封装", "存储", "SK海力士", "三星电子"],
         "trend": "事件驱动",
         "stocks": [
             {"name": "北方华创", "code": "002371", "quality": "设备龙头", "reason": "半导体设备龙头，国产替代主线相关度高。", "risk": "估值较高，短线受政策和订单预期影响大。"},
@@ -45,7 +51,7 @@ SECTOR_RULES = [
     },
     {
         "name": "新能源车 / 电池",
-        "keywords": ["新能源", "电池", "锂电", "电池材料", "价格竞争", "储能", "碳酸锂", "充电桩"],
+        "keywords": ["新能源", "电池", "锂电", "电池材料", "价格竞争", "储能", "碳酸锂", "充电桩", "电力设备"],
         "trend": "分歧加大",
         "stocks": [
             {"name": "宁德时代", "code": "300750", "quality": "龙头", "reason": "动力电池龙头，产业链景气变化会直接影响市场预期。", "risk": "价格战和材料价格波动会压制短线情绪。"},
@@ -55,7 +61,7 @@ SECTOR_RULES = [
     },
     {
         "name": "白酒 / 消费",
-        "keywords": ["白酒", "消费", "渠道", "中秋", "备货", "高端酒", "茅台", "五粮液"],
+        "keywords": ["白酒", "消费", "渠道", "中秋", "备货", "高端酒", "茅台", "五粮液", "零售"],
         "trend": "偏谨慎",
         "stocks": [
             {"name": "贵州茅台", "code": "600519", "quality": "高端核心", "reason": "高端白酒核心标的，渠道反馈会影响消费板块预期。", "risk": "短线弹性较弱，更适合观察消费情绪变化。"},
@@ -73,20 +79,72 @@ SECTOR_RULES = [
             {"name": "迈瑞医疗", "code": "300760", "quality": "器械龙头", "reason": "医疗器械核心公司，受医疗设备需求影响。", "risk": "板块风险偏好不足时弹性较弱。"},
         ],
     },
+    {
+        "name": "金融 / 券商",
+        "keywords": ["券商", "证券", "保险", "银行", "降息", "美联储", "加息", "流动性", "汇率"],
+        "trend": "宏观驱动",
+        "stocks": [
+            {"name": "东方财富", "code": "300059", "quality": "互联网券商", "reason": "市场成交活跃度和风险偏好变化会影响券商弹性。", "risk": "高度依赖市场成交量和指数情绪。"},
+            {"name": "中信证券", "code": "600030", "quality": "券商龙头", "reason": "券商龙头，适合观察金融板块整体风险偏好。", "risk": "短线弹性通常低于小市值券商。"},
+            {"name": "招商银行", "code": "600036", "quality": "银行核心", "reason": "利率、宏观预期和信用环境会影响银行估值。", "risk": "短线更多受宏观和指数风格影响。"},
+        ],
+    },
 ]
 
 
 def clean(text: str) -> str:
     text = re.sub(r"<[^>]+>", "", text or "")
+    text = re.sub(r"&[a-zA-Z]+;", " ", text)
     text = re.sub(r"\s+", " ", text)
     return text.strip()
 
 
-def fetch_rss(source: dict) -> list[dict]:
-    req = Request(source["url"], headers={"User-Agent": "Mozilla/5.0"})
+def fetch_text(url: str) -> str:
+    req = Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    with urlopen(req, timeout=20) as resp:
+        raw = resp.read()
+    return raw.decode("utf-8", errors="ignore")
+
+
+def fetch_eastmoney(column: dict) -> list[dict]:
+    params = {
+        "client": "web",
+        "biz": "web_news_col",
+        "column": column["column"],
+        "page_index": "1",
+        "page_size": "12",
+        "req_trace": uuid.uuid4().hex,
+    }
+    url = f"https://np-listapi.eastmoney.com/comm/web/getNewsByColumns?{urlencode(params)}"
     try:
-        with urlopen(req, timeout=20) as resp:
-            raw = resp.read()
+        data = json.loads(fetch_text(url))
+    except Exception as exc:
+        return [{
+            "title": f"{column['name']} 抓取失败",
+            "summary": str(exc),
+            "url": url,
+            "source": column["name"],
+            "published": "",
+        }]
+
+    items = []
+    for item in (data.get("data") or {}).get("list", [])[:12]:
+        title = clean(item.get("title", ""))
+        if not title:
+            continue
+        items.append({
+            "title": title,
+            "summary": clean(item.get("summary", "")),
+            "url": item.get("url") or item.get("uniqueUrl") or "",
+            "published": item.get("showTime", ""),
+            "source": item.get("mediaName") or column["name"],
+        })
+    return items
+
+
+def fetch_rss(source: dict) -> list[dict]:
+    try:
+        raw = fetch_text(source["url"])
     except (HTTPError, URLError, TimeoutError) as exc:
         return [{
             "title": f"{source['name']} 抓取失败",
@@ -116,18 +174,61 @@ def fetch_rss(source: dict) -> list[dict]:
     return items
 
 
-def collect_news() -> list[dict]:
+def parse_news_time(value: str) -> datetime | None:
+    if not value:
+        return None
+    value = value.strip()
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%d %H:%M"):
+        try:
+            return datetime.strptime(value, fmt).replace(tzinfo=TZ)
+        except ValueError:
+            pass
+    try:
+        dt = parsedate_to_datetime(value)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(TZ)
+    except Exception:
+        return None
+
+
+def enrich_freshness(items: list[dict], now: datetime) -> list[dict]:
+    for item in items:
+        dt = parse_news_time(item.get("published", ""))
+        item["published_at"] = dt.isoformat() if dt else ""
+        item["published_label"] = dt.strftime("%Y-%m-%d %H:%M") if dt else item.get("published", "")
+        item["is_today"] = bool(dt and dt.date() == now.date())
+    return items
+
+
+def collect_news(now: datetime) -> tuple[list[dict], list[dict]]:
     seen = set()
     results = []
-    for source in RSS_SOURCES:
-        for item in fetch_rss(source):
+    source_status = []
+
+    for source in EASTMONEY_COLUMNS:
+        items = fetch_eastmoney(source)
+        source_status.append({"name": source["name"], "items": len(items), "type": "realtime"})
+        for item in items:
             key = item["title"]
-            if key in seen:
-                continue
-            seen.add(key)
-            results.append(item)
-        time.sleep(0.4)
-    return results[:30]
+            if key not in seen:
+                seen.add(key)
+                results.append(item)
+        time.sleep(0.25)
+
+    for source in RSS_SOURCES:
+        items = fetch_rss(source)
+        source_status.append({"name": source["name"], "items": len(items), "type": "rss"})
+        for item in items:
+            key = item["title"]
+            if key not in seen:
+                seen.add(key)
+                results.append(item)
+        time.sleep(0.25)
+
+    enrich_freshness(results, now)
+    results.sort(key=lambda item: item.get("published_at") or "", reverse=True)
+    return results[:30], source_status
 
 
 def impact_direction(trend: str) -> str:
@@ -137,7 +238,7 @@ def impact_direction(trend: str) -> str:
         return "偏负向 / 需观察"
     if trend == "分歧加大":
         return "多空分歧"
-    return "事件驱动"
+    return trend
 
 
 def build_news_analysis(news_items: list[dict]) -> list[dict]:
@@ -153,7 +254,7 @@ def build_news_analysis(news_items: list[dict]) -> list[dict]:
                 "sector": sector["name"],
                 "direction": impact_direction(sector["trend"]),
                 "hits": hits[:6],
-                "logic": f"新闻命中{sector['name']}相关关键词，短线更适合作为板块观察线索，先看板块强度和龙头反馈。",
+                "logic": f"新闻命中{sector['name']}相关关键词，适合作为短线板块观察线索，先看板块强度和龙头反馈。",
                 "watch_stocks": sector["stocks"][:3],
                 "risk": "新闻热度不等于股价持续上涨，需要防止高开低走、题材兑现和市场情绪转弱。",
             })
@@ -173,6 +274,8 @@ def build_news_analysis(news_items: list[dict]) -> list[dict]:
             "url": item.get("url", ""),
             "source": item.get("source", ""),
             "published": item.get("published", ""),
+            "published_label": item.get("published_label", ""),
+            "is_today": item.get("is_today", False),
             "summary": item.get("summary", "")[:220],
             "impacts": matched[:3],
         })
@@ -201,7 +304,8 @@ def call_openai(news_items: list[dict]) -> dict | None:
             "title": item.get("title", "")[:120],
             "summary": item.get("summary", "")[:260],
             "source": item.get("source", ""),
-            "published": item.get("published", ""),
+            "published": item.get("published_label") or item.get("published", ""),
+            "is_today": item.get("is_today", False),
             "url": item.get("url", ""),
         }
         for item in news_items[:12]
@@ -211,8 +315,9 @@ def call_openai(news_items: list[dict]) -> dict | None:
         "role": "A股短线新闻情报分析助手",
         "rules": [
             "只做信息整理、影响链路分析和风险提示，不输出买入、卖出、必涨、收益承诺。",
+            "优先分析 is_today=true 的新闻；如果新闻不是当天，要提醒数据源可能滞后。",
             "每条新闻都要给出独立分析，不能只做总体总结。",
-            "如果新闻与股票影响链路不清晰，要明确写暂不判断，不要强行关联。",
+            "如果新闻与股票影响链路不清晰，要写暂不判断，不要强行关联。",
             "语言要像专业投研/产品工具输出，简洁、克制、可展示在网页里。",
         ],
         "output_json_shape": {
@@ -244,24 +349,15 @@ def call_openai(news_items: list[dict]) -> dict | None:
     payload = {
         "model": OPENAI_MODEL,
         "messages": [
-            {
-                "role": "system",
-                "content": "你是一个谨慎的A股短线新闻情报分析助手，只输出JSON，不输出投资建议。",
-            },
-            {
-                "role": "user",
-                "content": json.dumps(prompt, ensure_ascii=False),
-            },
+            {"role": "system", "content": "你是一个谨慎的A股短线新闻情报分析助手，只输出JSON，不输出投资建议。"},
+            {"role": "user", "content": json.dumps(prompt, ensure_ascii=False)},
         ],
         "temperature": 0.2,
     }
     req = Request(
         OPENAI_URL,
         data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json",
-        },
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
         method="POST",
     )
 
@@ -269,10 +365,7 @@ def call_openai(news_items: list[dict]) -> dict | None:
         with urlopen(req, timeout=60) as resp:
             data = json.loads(resp.read().decode("utf-8"))
     except Exception as exc:
-        return {
-            "ai_enabled": False,
-            "ai_error": f"AI分析调用失败：{exc}",
-        }
+        return {"ai_enabled": False, "ai_error": f"AI分析调用失败：{exc}"}
 
     try:
         text = data["choices"][0]["message"]["content"]
@@ -282,10 +375,7 @@ def call_openai(news_items: list[dict]) -> dict | None:
         result["ai_base_url"] = OPENAI_BASE_URL
         return result
     except Exception as exc:
-        return {
-            "ai_enabled": False,
-            "ai_error": f"AI分析结果解析失败：{exc}",
-        }
+        return {"ai_enabled": False, "ai_error": f"AI分析结果解析失败：{exc}"}
 
 
 def analyze(news_items: list[dict]) -> dict:
@@ -314,11 +404,7 @@ def analyze(news_items: list[dict]) -> dict:
 
         for idx, stock in enumerate(sector["stocks"]):
             item = dict(stock)
-            item.update({
-                "sector": sector["name"],
-                "trend": sector["trend"],
-                "score": max(68, heat - idx * 5),
-            })
+            item.update({"sector": sector["name"], "trend": sector["trend"], "score": max(68, heat - idx * 5)})
             candidates.append(item)
 
     candidates.sort(key=lambda x: x["score"], reverse=True)
@@ -334,29 +420,41 @@ def analyze(news_items: list[dict]) -> dict:
     if ai_result:
         result.update(ai_result)
     else:
-        result.update({
-            "ai_enabled": False,
-            "ai_error": "未配置 OPENAI_API_KEY，当前使用规则分析。",
-        })
+        result.update({"ai_enabled": False, "ai_error": "未配置 OPENAI_API_KEY，当前使用规则分析。"})
     return result
+
+
+def build_freshness(news_items: list[dict], now: datetime, source_status: list[dict]) -> dict:
+    today_count = sum(1 for item in news_items if item.get("is_today"))
+    latest = next((item for item in news_items if item.get("published_label")), None)
+    return {
+        "today_count": today_count,
+        "total_count": len(news_items),
+        "latest_news_time": latest.get("published_label", "") if latest else "",
+        "latest_news_source": latest.get("source", "") if latest else "",
+        "is_fresh": today_count > 0,
+        "warning": "" if today_count > 0 else "当前新闻源未抓到今日新闻，数据可能滞后。",
+        "sources": source_status,
+    }
 
 
 def main() -> None:
     now = datetime.now(TZ)
-    news_items = collect_news()
+    news_items, source_status = collect_news(now)
     analysis = analyze(news_items)
     payload = {
-        "version": "V2",
+        "version": "V3.1",
         "generated_at": now.isoformat(),
         "generated_label": now.strftime("%Y-%m-%d %H:%M"),
         "market": "A股",
         "style": "短线新闻驱动",
-        "source_note": "公开 RSS 新闻源 + 规则映射板块；结果用于信息整理，不构成投资建议。",
+        "source_note": "东方财富快讯 + 雪球RSS + AI/规则分析；结果用于信息整理，不构成投资建议。",
+        "freshness": build_freshness(news_items, now, source_status),
         "news": news_items,
         **analysis,
     }
     OUT.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(f"daily report generated: {OUT} ({len(news_items)} news)")
+    print(f"daily report generated: {OUT} ({len(news_items)} news, {payload['freshness']['today_count']} today)")
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 # A股短线情报 Agent
 
-这是一个部署到 GitHub Pages 的网页工具原型。它每天通过 GitHub Actions 自动抓取公开财经 RSS 新闻，生成 `daily-report.json`，网页端读取 JSON 后展示新闻影响板块、候选观察池和风险提示。
+这是一个部署到 GitHub Pages 的网页工具原型。它每天通过 GitHub Actions 自动抓取公开财经新闻，生成 `daily-report.json`，网页端读取 JSON 后展示新闻时效性、AI 总结、新闻影响板块、候选观察池和风险提示。
 
 ## 文件
 
@@ -8,6 +8,17 @@
 - `news_agent.py`：自动抓取新闻并生成 `daily-report.json`。
 - `.github/workflows/daily-report.yml`：每天定时运行脚本并提交日报。
 - `daily-report.json`：自动生成的网页数据文件。
+
+## V3.1 数据源升级
+
+V3.1 优先使用东方财富快讯接口，补充雪球 RSS，并在日报里新增 `freshness` 字段：
+
+- `today_count`：抓到的当天新闻数量
+- `latest_news_time`：最新新闻发布时间
+- `is_fresh`：是否抓到当天新闻
+- `sources`：各数据源抓取条数
+
+这样可以区分“日报今天运行了”和“新闻源是否真的更新了”。
 
 ## AI 接入
 
