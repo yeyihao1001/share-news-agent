@@ -14,7 +14,8 @@
 V3 支持在 GitHub Actions 中调用 OpenAI API。需要在仓库 `Settings -> Secrets and variables -> Actions` 中新增：
 
 - Secret：`OPENAI_API_KEY`
-- Variable：`OPENAI_MODEL`，可选，默认使用 `gpt-4.1-mini`
+- Variable：`OPENAI_BASE_URL`，使用 Terln 时填写 `https://api.terln.com/v1`
+- Variable：`OPENAI_MODEL`，使用 Terln GPT 5.4 Mini 时填写 `gpt-5.4-mini`
 
 如果没有配置 API Key，项目会自动退回规则分析模式，网页仍可正常展示。
 

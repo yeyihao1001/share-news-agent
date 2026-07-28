@@ -11,7 +11,8 @@ from xml.etree import ElementTree as ET
 
 TZ = timezone(timedelta(hours=8))
 OUT = Path("daily-report.json")
-OPENAI_URL = "https://api.openai.com/v1/responses"
+OPENAI_BASE_URL = os.environ.get("OPENAI_BASE_URL", "https://api.openai.com/v1").rstrip("/")
+OPENAI_URL = f"{OPENAI_BASE_URL}/chat/completions"
 OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4.1-mini")
 
 RSS_SOURCES = [
@@ -242,7 +243,7 @@ def call_openai(news_items: list[dict]) -> dict | None:
 
     payload = {
         "model": OPENAI_MODEL,
-        "input": [
+        "messages": [
             {
                 "role": "system",
                 "content": "你是一个谨慎的A股短线新闻情报分析助手，只输出JSON，不输出投资建议。",
@@ -252,6 +253,7 @@ def call_openai(news_items: list[dict]) -> dict | None:
                 "content": json.dumps(prompt, ensure_ascii=False),
             },
         ],
+        "temperature": 0.2,
     }
     req = Request(
         OPENAI_URL,
@@ -273,17 +275,11 @@ def call_openai(news_items: list[dict]) -> dict | None:
         }
 
     try:
-        text = data.get("output_text", "")
-        if not text:
-            parts = []
-            for item in data.get("output", []):
-                for content in item.get("content", []):
-                    if content.get("type") in ("output_text", "text"):
-                        parts.append(content.get("text", ""))
-            text = "\n".join(parts)
+        text = data["choices"][0]["message"]["content"]
         result = extract_json(text)
         result["ai_enabled"] = True
         result["ai_model"] = OPENAI_MODEL
+        result["ai_base_url"] = OPENAI_BASE_URL
         return result
     except Exception as exc:
         return {
